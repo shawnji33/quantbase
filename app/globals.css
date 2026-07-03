@@ -23,6 +23,7 @@
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
+    --color-border-secondary: var(--border-secondary);
     --color-destructive: var(--destructive);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
@@ -50,12 +51,12 @@
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.141 0.005 285.823);
-    --card: oklch(1 0 0);
+    --card: #fdfdfd;
     --card-foreground: oklch(0.141 0.005 285.823);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.141 0.005 285.823);
-    --primary: oklch(0.491 0.27 292.581);
-    --primary-foreground: oklch(0.969 0.016 293.756);
+    --primary: oklch(0.537 0.225 288.5);
+    --primary-foreground: oklch(0.969 0.016 288.5);
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.967 0.001 286.375);
@@ -74,12 +75,17 @@
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.141 0.005 285.823);
-    --sidebar-primary: oklch(0.541 0.281 293.009);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
+    --sidebar-primary: oklch(0.537 0.225 288.5);
+    --sidebar-primary-foreground: oklch(0.969 0.016 288.5);
     --sidebar-accent: oklch(0.967 0.001 286.375);
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.705 0.015 286.067);
+    /* Lifted card surface + Apple-style glass */
+    --border-secondary: rgba(10, 13, 18, 0.08);
+    --shadow-card: 0 1px 12px 0 rgba(10, 13, 18, 0.03);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.55);
 }
 
 .dark {
@@ -89,8 +95,8 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.21 0.006 285.885);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.432 0.232 292.759);
-    --primary-foreground: oklch(0.969 0.016 293.756);
+    --primary: oklch(0.585 0.22 288.5);
+    --primary-foreground: oklch(0.969 0.016 288.5);
     --secondary: oklch(0.274 0.006 286.033);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.274 0.006 286.033);
@@ -108,12 +114,16 @@
     --chart-5: oklch(0.274 0.006 286.033);
     --sidebar: oklch(0.21 0.006 285.885);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.606 0.25 292.717);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
+    --sidebar-primary: oklch(0.585 0.22 288.5);
+    --sidebar-primary-foreground: oklch(0.969 0.016 288.5);
     --sidebar-accent: oklch(0.274 0.006 286.033);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.552 0.016 285.938);
+    --border-secondary: rgba(255, 255, 255, 0.1);
+    --shadow-card: 0 1px 12px 0 rgba(0, 0, 0, 0.4);
+    --glass-bg: rgba(22, 22, 27, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -129,4 +139,24 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Apple-style frosted glass for chrome (headers, sidebars, popovers). */
+.glass {
+  background-color: var(--glass-bg);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* Accessibility: honor the OS "reduce motion" setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
