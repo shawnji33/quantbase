@@ -23,9 +23,9 @@ export default function StrategiesLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-svh flex-col bg-[#f5f6f7]">
-      {/* top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-black/[0.06] bg-[#f5f6f7]/70 px-4 backdrop-blur-xl backdrop-saturate-150">
+    <div className="flex h-svh flex-col overflow-hidden bg-[#f5f6f7]">
+      {/* top bar (fixed) */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-black/[0.06] bg-[#f5f6f7]/70 px-4 backdrop-blur-xl backdrop-saturate-150">
         <div className="flex items-center gap-2 font-semibold">
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -47,9 +47,9 @@ export default function StrategiesLayout({
         </div>
       </header>
 
-      <div className="flex flex-1">
-        {/* sidebar */}
-        <aside className="hidden w-56 shrink-0 border-r bg-[#f5f6f7] p-3 md:block">
+      <div className="flex min-h-0 flex-1">
+        {/* sidebar (fixed) */}
+        <aside className="hidden w-56 shrink-0 overflow-y-auto border-r bg-[#f5f6f7] p-3 md:block">
           <nav className="flex flex-col gap-1">
             {NAV.map(({ label, icon: Icon, href }) => {
               const active = label === "Strategies"
@@ -72,8 +72,8 @@ export default function StrategiesLayout({
           </nav>
         </aside>
 
-        {/* content */}
-        <main className="min-w-0 flex-1">{children}</main>
+        {/* content (only this scrolls) */}
+        <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   )

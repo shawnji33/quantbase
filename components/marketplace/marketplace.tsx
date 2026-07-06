@@ -99,13 +99,7 @@ export function Marketplace() {
             Returns shown are net of fees
           </span>{" "}
           — they reflect Quantbase&apos;s advisory fee and are what you&apos;d
-          actually experience as a client.{" "}
-          <a
-            href="#"
-            className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-          >
-            See fee schedule
-          </a>
+          actually experience as a client.
         </p>
       </div>
 
