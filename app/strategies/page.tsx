@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
+import { Marketplace } from "@/components/marketplace/marketplace"
 
 export default function Page() {
-  redirect("/strategies/sparkline")
+  return <Marketplace />
 }

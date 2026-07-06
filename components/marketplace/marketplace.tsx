@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { RiSearchLine, RiLayoutGridLine, RiListCheck } from "@remixicon/react"
+import { RiSearchLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
 import { strategies, CATEGORIES, type Category } from "@/lib/strategies"
@@ -17,10 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { SparklineCard } from "./card-sparkline"
-import { StatCard } from "./card-stat"
-import { ListTable } from "./list-table"
 
-type Variant = "sparkline" | "stat" | "list"
 type Sort = "perfInception" | "perf1y" | "titleAsc" | "titleDesc"
 
 const SORT_LABELS: Record<Sort, string> = {
@@ -30,13 +27,10 @@ const SORT_LABELS: Record<Sort, string> = {
   titleDesc: "Title (Z-A)",
 }
 
-export function Marketplace({ variant }: { variant: Variant }) {
+export function Marketplace() {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<Category[]>([])
   const [sort, setSort] = useState<Sort>("perfInception")
-  const [view, setView] = useState<"grid" | "list">(
-    variant === "list" ? "list" : "grid",
-  )
 
   function toggleCategory(c: (typeof CATEGORIES)[number]) {
     if (c === "All") {
@@ -84,46 +78,17 @@ export function Marketplace({ variant }: { variant: Variant }) {
       })
   }, [query, selected, sort])
 
-  const showToggle = variant === "list"
-  const asList = showToggle && view === "list"
-
   // Changing sort or filters remounts the results so they animate in.
   const animKey = `${selected.join(",")}|${sort}`
 
   return (
     <div className="mx-auto w-full max-w-[1344px] px-6 py-8">
       {/* header */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Explore strategies</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Automated portfolios you can invest in — {results.length} available.
-          </p>
-        </div>
-
-        {showToggle && (
-          <div className="flex items-center gap-1 rounded-lg border bg-background p-0.5">
-            {(["grid", "list"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                aria-label={`${v} view`}
-                className={cn(
-                  "flex size-8 items-center justify-center rounded-md transition-colors",
-                  view === v
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {v === "grid" ? (
-                  <RiLayoutGridLine className="size-4" />
-                ) : (
-                  <RiListCheck className="size-4" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Explore strategies</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Automated portfolios you can invest in — {results.length} available.
+        </p>
       </div>
 
       {/* toolbar */}
@@ -186,13 +151,6 @@ export function Marketplace({ variant }: { variant: Variant }) {
             Clear all
           </Button>
         </div>
-      ) : asList ? (
-        <div
-          key={animKey}
-          className="animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none"
-        >
-          <ListTable items={results} />
-        </div>
       ) : (
         <div key={animKey} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((s, i) => (
@@ -201,7 +159,7 @@ export function Marketplace({ variant }: { variant: Variant }) {
               className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300 motion-reduce:animate-none"
               style={{ animationDelay: `${Math.min(i, 5) * 50}ms` }}
             >
-              {variant === "stat" ? <StatCard s={s} /> : <SparklineCard s={s} />}
+              <SparklineCard s={s} />
             </div>
           ))}
         </div>

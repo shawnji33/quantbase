@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import {
   RiDashboardLine,
   RiStockLine,
@@ -14,14 +13,8 @@ import { cn } from "@/lib/utils"
 
 const NAV = [
   { label: "Dashboard", icon: RiDashboardLine, href: "#" },
-  { label: "Strategies", icon: RiStockLine, href: "/strategies/sparkline" },
+  { label: "Strategies", icon: RiStockLine, href: "/strategies" },
   { label: "Help center", icon: RiQuestionLine, href: "#" },
-]
-
-const VARIANTS = [
-  { label: "A · Sparkline-hero", href: "/strategies/sparkline" },
-  { label: "B · Stat-forward", href: "/strategies/stat" },
-  { label: "C · Compact list", href: "/strategies/list" },
 ]
 
 export default function StrategiesLayout({
@@ -29,8 +22,6 @@ export default function StrategiesLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-
   return (
     <div className="flex min-h-svh flex-col bg-[#f5f6f7]">
       {/* top bar */}
@@ -82,30 +73,7 @@ export default function StrategiesLayout({
         </aside>
 
         {/* content */}
-        <main className="min-w-0 flex-1">
-          {/* variant switcher (design preview only) */}
-          <div className="sticky top-14 z-20 flex items-center gap-2 overflow-x-auto border-b border-black/[0.06] bg-[#f5f6f7]/70 px-6 py-2 backdrop-blur-xl backdrop-saturate-150">
-            <span className="mr-1 text-xs font-medium text-muted-foreground">
-              Design preview:
-            </span>
-            {VARIANTS.map((v) => (
-              <Link
-                key={v.href}
-                href={v.href}
-                className={cn(
-                  "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  pathname === v.href
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {v.label}
-              </Link>
-            ))}
-          </div>
-
-          {children}
-        </main>
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>
   )
