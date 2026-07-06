@@ -3,11 +3,12 @@ import { RiArrowRightLine } from "@remixicon/react"
 import type { Strategy } from "@/lib/strategies"
 import { PriceChart } from "@/components/price-chart"
 import { Button } from "@/components/ui/button"
+import { RiskScore } from "@/components/risk-score"
 
-/** Concept A — matches Figma node 24121:14535 (with the secondary Invest CTA). */
+/** Concept A — matches Figma node 24121:14535. */
 export function SparklineCard({ s }: { s: Strategy }) {
   return (
-    <div className="flex flex-col gap-2 rounded-[16px] border border-black/5 bg-[#ededed] p-2 shadow-[0px_1px_12px_0px_rgba(10,13,18,0.03)]">
+    <div className="flex flex-col gap-2 rounded-[16px] border border-black/5 bg-[#efefef] p-2 shadow-[0px_1px_6px_0px_rgba(10,13,18,0.03)]">
       {/* title block (on the gray frame) */}
       <div className="flex flex-col gap-1 p-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -15,7 +16,7 @@ export function SparklineCard({ s }: { s: Strategy }) {
             {s.name}
           </h3>
           {s.partner && (
-            <span className="shrink-0 rounded-full border border-black/10 bg-white px-2.5 py-0.5 text-sm font-medium text-[#47475d]">
+            <span className="shrink-0 rounded-full border border-[#d7d7e0] bg-[#f6f6f9] px-2 py-0.5 text-xs font-medium text-[#47475d]">
               Partner funds
             </span>
           )}
@@ -35,7 +36,8 @@ export function SparklineCard({ s }: { s: Strategy }) {
           />
         </div>
 
-        {/* metrics row — equal-width columns with a fixed gutter */}
+        {/* metrics group — returns + risk, 16px gap */}
+        <div className="flex w-full flex-col gap-4">
         <div className="flex w-full items-start gap-5">
           <Metric label="1-year return">
             <ReturnValue value={s.oneYear} />
@@ -43,27 +45,24 @@ export function SparklineCard({ s }: { s: Strategy }) {
 
           <Divider />
 
-          <Metric label="Inception">
-            <MetricValue>{fmt(s.inceptionReturn)}</MetricValue>
+          <Metric label="3-year return">
+            <MetricValue>{fmt(s.threeYear)}</MetricValue>
           </Metric>
 
           <Divider />
 
-          <Metric label="Risk score">
-            <p className="font-medium leading-none tabular-nums text-[#47475d]">
-              <span className="text-base">{s.risk.toFixed(2)}</span>
-              <span className="ml-0.5 text-xs text-[#6d6f8a]">/5</span>
-            </p>
+          <Metric label="Inception">
+            <MetricValue>{fmt(s.inceptionReturn)}</MetricValue>
           </Metric>
+        </div>
+
+        {/* risk score row */}
+        <RiskScore risk={s.risk} />
         </div>
       </div>
 
-      {/* clickable CTA → strategy detail (only interactive target on the card) */}
-      <Button
-        variant="secondary"
-        size="lg"
-        className="w-full font-semibold"
-      >
+      {/* clickable CTA → strategy detail */}
+      <Button variant="secondary" size="lg" className="w-full font-semibold">
         Invest
         <RiArrowRightLine className="size-5" />
       </Button>
@@ -72,7 +71,7 @@ export function SparklineCard({ s }: { s: Strategy }) {
 }
 
 function fmt(n: number) {
-  return `${n.toFixed(2)}%`
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 }
 
 function Metric({
@@ -83,8 +82,8 @@ function Metric({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-      <p className="text-xs font-medium leading-5 whitespace-nowrap text-[#6d6f8a]">
+    <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+      <p className="text-xs font-medium leading-[18px] whitespace-nowrap text-[#6d6f8a]">
         {label}
       </p>
       {children}
@@ -94,7 +93,7 @@ function Metric({
 
 function MetricValue({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-base font-medium leading-none tabular-nums text-[#47475d]">
+    <p className="text-base font-medium leading-6 tabular-nums text-[#47475d]">
       {children}
     </p>
   )
@@ -109,7 +108,7 @@ function ReturnValue({ value }: { value: number }) {
   return (
     <p
       className={
-        "text-base font-medium leading-none tabular-nums " +
+        "text-base font-medium leading-6 tabular-nums " +
         (up ? "text-[#1d7e4f]" : "text-[#d92d20]")
       }
     >

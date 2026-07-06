@@ -94,13 +94,21 @@ export function Marketplace() {
       {/* fee disclosure banner */}
       <div className="mb-6 flex items-start gap-3 rounded-xl border border-black/[0.08] bg-white p-4 text-sm leading-relaxed text-[#47475d]">
         <RiInformationLine className="mt-0.5 size-5 shrink-0 text-[#6d6f8a]" />
-        <p>
-          <span className="font-semibold text-[#363643]">
-            Returns shown are net of fees
-          </span>{" "}
-          — they reflect Quantbase&apos;s advisory fee and are what you&apos;d
-          actually experience as a client.
-        </p>
+        <div className="flex flex-col gap-2">
+          <p>
+            <span className="font-semibold text-[#363643]">
+              Returns shown are net of fees:
+            </span>{" "}
+            they reflect Quantbase&apos;s advisory fee and are what you&apos;d
+            actually experience as a client.
+          </p>
+          <p>
+            <span className="font-semibold text-[#363643]">
+              Past performance doesn&apos;t guarantee future results:
+            </span>{" "}
+            You can lose money by investing.
+          </p>
+        </div>
       </div>
 
       {/* toolbar */}
