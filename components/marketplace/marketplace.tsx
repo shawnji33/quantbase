@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { RiSearchLine } from "@remixicon/react"
+import { RiSearchLine, RiInformationLine } from "@remixicon/react"
 
 import { cn } from "@/lib/utils"
 import { strategies, CATEGORIES, type Category } from "@/lib/strategies"
@@ -83,6 +83,24 @@ export function Marketplace() {
 
   return (
     <div className="mx-auto w-full max-w-[1344px] px-6 py-8">
+      {/* fee disclosure banner */}
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-black/[0.08] bg-white p-4 text-sm leading-relaxed text-[#47475d]">
+        <RiInformationLine className="mt-0.5 size-5 shrink-0 text-[#6d6f8a]" />
+        <p>
+          <span className="font-semibold text-[#363643]">
+            Returns shown are net of fees
+          </span>{" "}
+          — they reflect Quantbase&apos;s advisory fee and are what you&apos;d
+          actually experience as a client.{" "}
+          <a
+            href="#"
+            className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+          >
+            See fee schedule
+          </a>
+        </p>
+      </div>
+
       {/* header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Explore strategies</h1>
