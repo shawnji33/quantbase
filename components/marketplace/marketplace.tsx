@@ -83,6 +83,14 @@ export function Marketplace() {
 
   return (
     <div className="mx-auto w-full max-w-[1344px] px-6 py-8">
+      {/* header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Explore strategies</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Automated portfolios you can invest in — {results.length} available.
+        </p>
+      </div>
+
       {/* fee disclosure banner */}
       <div className="mb-6 flex items-start gap-3 rounded-xl border border-black/[0.08] bg-white p-4 text-sm leading-relaxed text-[#47475d]">
         <RiInformationLine className="mt-0.5 size-5 shrink-0 text-[#6d6f8a]" />
@@ -98,14 +106,6 @@ export function Marketplace() {
           >
             See fee schedule
           </a>
-        </p>
-      </div>
-
-      {/* header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Explore strategies</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Automated portfolios you can invest in — {results.length} available.
         </p>
       </div>
 
