@@ -1,0 +1,209 @@
+# Quantbase — Design Prototype Handoff
+
+A high-fidelity, front-end prototype of the Quantbase **Explore strategies** marketplace,
+built for design sign-off and team feedback. This document is the single source of truth for
+the dev team to review, run, and extend the work.
+
+- **Status:** Front-end only (no backend, no real auth). All data is mock.
+- **Prepared:** 2026-07 · **Owner:** Shawn (shawn@surmount.ai)
+
+---
+
+## 1. Links
+
+| Resource | URL |
+|---|---|
+| **Live prototype** (public, no login) | https://quantbase-five.vercel.app/strategies |
+| **Login screen** | https://quantbase-five.vercel.app/login |
+| **GitHub repo** (private) | https://github.com/shawnji33/quantbase |
+| **Figma file** | https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase |
+| **Vercel project** | `quantbase` (scope: shawns-projects) |
+
+Production alias: `quantbase-five.vercel.app` · Root `/` redirects to `/login`.
+
+---
+
+## 2. Tech stack
+
+- **Next.js 16.2.6** (App Router, Turbopack) · React · **TypeScript**
+- **Tailwind CSS v4** (`@import "tailwindcss"`, CSS-first config in `app/globals.css`)
+- **shadcn/ui** (`radix-nova` style, Radix primitives) — components in `components/ui/`
+- **@remixicon/react** — icon set (design-system default)
+- Fonts: **Inter** (sans/body), Geist Mono (mono) via `next/font`
+- Deployed on **Vercel** (static prerender; all routes are `○ Static`)
+
+---
+
+## 3. Run / build / deploy
+
+```bash
+# install
+npm install
+
+# local dev  → http://localhost:3000
+npm run dev
+
+# production build (type-checks + lints)
+npm run build
+
+# deploy to Vercel production
+vercel --prod
+```
+
+Node 18+ recommended. No environment variables are required (no backend).
+
+---
+
+## 4. Routes
+
+| Route | File | Purpose |
+|---|---|---|
+| `/` | `app/page.tsx` | Redirects to `/login` |
+| `/login` | `app/login/page.tsx` | Auth UI (sign in / create account) — **UI only** |
+| `/strategies` | `app/strategies/page.tsx` → `components/marketplace/marketplace.tsx` | The marketplace (the main deliverable) |
+
+`app/strategies/layout.tsx` provides the fixed app shell (top bar + sidebar; only the
+main column scrolls). `app/template.tsx` adds a subtle page-transition fade.
+
+---
+
+## 5. Project structure
+
+```
+app/
+  globals.css            # Tailwind v4 + design tokens (colors, radii, glass, shadows)
+  layout.tsx             # root layout, fonts, ThemeProvider, FigmaCaptureLoader
+  template.tsx           # page-transition wrapper (fade)
+  page.tsx               # / → redirect to /login
+  login/page.tsx         # login/signup screen
+  strategies/
+    layout.tsx           # app shell: fixed header + sidebar, scrolling content
+    page.tsx             # renders <Marketplace />
+components/
+  marketplace/
+    marketplace.tsx      # search + category chips + sort + results grid (client)
+    card-sparkline.tsx   # the strategy card (chart + metrics + risk + Invest)
+  price-chart.tsx        # interactive SVG area chart w/ cursor-tracking tooltip (client)
+  risk-score.tsx         # gray-purple segmented risk meter + methodology modal (client)
+  figma-capture-loader.tsx  # dev-only: loads Figma capture script on #figmacapture hash
+  theme-provider.tsx     # next-themes wrapper (dark mode支持)
+  ui/                    # shadcn components (button, card, dialog, select, tooltip, ...)
+lib/
+  strategies.ts          # mock data + types + helpers (fmtPct, riskLabel)
+  utils.ts               # cn() classname helper
+public/
+  logo-mark.jpg          # colored Quantbase mark
+  logo-mark-white.png    # white mark (used in header / login)
+```
+
+---
+
+## 6. Design system / tokens
+
+Defined as CSS variables in `app/globals.css` (`:root` + `.dark`). Key values:
+
+- **Brand / primary:** `#7046E5` (`--primary`, exposed as `oklch(0.537 0.225 288.5)`)
+- **Card surface:** `--card` = `#fdfdfd`; page background `#F5F6F7`; card frame `#efefef`
+- **Text ramp (gray-purple):** `#363643` (primary) · `#47475d` (secondary) · `#575872`
+  (tertiary) · `#6d6f8a` (quaternary) · `#b4b5c5` (placeholder)
+- **Borders:** `--border-secondary` = `rgba(10,13,18,0.08)`
+- **Card shadow:** `--shadow-card` = `0 1px 12px rgba(10,13,18,0.03)`
+- **Success (returns):** `#1d7e4f` green · **Negative:** `#d92d20` red
+- **Risk meter:** filled `#575872`, track `#9a9ab2`, surface `#eeedf1`
+- **Radii:** `--radius` = 10px; cards use `rounded-[16px]` (outer) / `rounded-[10px]` (inner)
+- **`.glass`** utility: frosted backdrop blur + saturation for chrome
+- Button size scale is **padding-based** (aligned to the design library): `xs/sm/default/lg`
+  Primary = skeuomorphic indigo pill; Secondary = white pill (`border rgba(0,0,0,0.10)`)
+
+Type sizes are on the even DS scale: labels 12px, body 14px, values/titles 16px.
+
+---
+
+## 7. Key components (behavior)
+
+- **Strategy card** (`card-sparkline.tsx`): gray frame → title + optional "Partner funds"
+  badge + description; white inner card with the interactive chart, three return metrics
+  (1-year / 3-year / Inception, dividers between), and the risk-score row; a full-width
+  secondary **Invest** pill.
+- **PriceChart** (`price-chart.tsx`): smooth Bézier area chart. On hover, a dot follows the
+  cursor continuously (interpolated along the curve) and a glass tooltip shows a
+  "growth of $10,000" value + date. Default cursor (not a link). Respects reduced-motion.
+- **RiskScore** (`risk-score.tsx`): 5 segment bars + `n / 5`. Info icon → hover tooltip
+  ("How is this calculated?") → click opens a **modal** with the full risk methodology copy.
+- **Marketplace** (`marketplace.tsx`): live search (name/manager), multi-select category
+  chips (All / Crypto / Gov't / Meme / Partner / Quantbase), sort (Performance Inception /
+  1-Year / Title A–Z / Z–A), animated results, empty-state with "Clear all".
+
+---
+
+## 8. Data model (mock)
+
+All strategies live in `lib/strategies.ts` (`Strategy[]`). To wire a real API, replace this
+array with fetched data of the same shape:
+
+```ts
+type Strategy = {
+  id: string
+  name: string
+  manager: string
+  blurb: string
+  partner: boolean
+  categories: Category[]        // "Crypto" | "Gov't" | "Meme" | "Partner" | "Quantbase"
+  inceptionYear: number
+  oneYear: number               // %
+  threeYear: number             // %
+  inceptionReturn: number       // %
+  risk: number                  // 0–5
+  dailyVol: number              // %
+  maxDrawdown: number           // %, negative
+  minInvest: number
+  series: number[]              // normalized price series for the chart
+}
+```
+
+There are 13 sample strategies spanning every category, with a mix of positive/negative
+returns and varied inception years to exercise all UI states.
+
+---
+
+## 9. Known placeholders / not implemented (for the dev team)
+
+These are intentional gaps — the prototype is front-end only:
+
+- **No backend / API** — data is the static `strategies` array.
+- **No real auth** — the login form only prevents default on submit; social buttons are inert.
+- **"Invest"** buttons and card have **no navigation** yet (no strategy detail page exists).
+- **"See fee schedule"** and other `href="#"` links are placeholders.
+- The chart tooltip value is a **hypothetical "$10k growth"** derived from the series, not real
+  account data. Dates are spread inception→today.
+- **Risk score** is rounded to an integer for display (`4 / 5`); real scoring per the modal copy
+  is not computed here.
+- `FigmaCaptureLoader` is a **dev tool** (loads Figma's capture script only when the URL hash
+  starts with `#figmacapture`) — harmless in prod, safe to remove if undesired.
+
+---
+
+## 10. Figma references (design source of truth)
+
+File: https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase
+
+| Frame | node-id |
+|---|---|
+| Explore strategies page (current) | `24185-2` |
+| Strategy card (option A, spec) | `24121-14535` |
+| Risk score row (spec) | `24146-14826` |
+| Risk Score Calculation modal | `24159-2` |
+| Risk tooltip state | `24161-2` |
+
+---
+
+## 11. Sign-off checklist
+
+- [ ] Review live prototype: https://quantbase-five.vercel.app/strategies
+- [ ] Confirm design matches Figma (`24185-2` and card `24121-14535`)
+- [ ] Confirm data model shape (`lib/strategies.ts`) for API integration
+- [ ] Decide on strategy **detail page** scope (Invest / card click target)
+- [ ] Decide on **auth** provider (currently UI-only)
+- [ ] Confirm copy: net-of-fees banner + risk methodology modal
+- [ ] Accessibility pass (keyboard, focus, reduced-motion are already respected)
+```
