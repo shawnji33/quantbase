@@ -206,4 +206,40 @@ File: https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase
 - [ ] Decide on **auth** provider (currently UI-only)
 - [ ] Confirm copy: net-of-fees banner + risk methodology modal
 - [ ] Accessibility pass (keyboard, focus, reduced-motion are already respected)
-```
+
+---
+
+## 12. Strategy page — file index
+
+Every file that makes up the `/strategies` (Explore strategies) page.
+
+**Route & shell**
+- [`app/strategies/page.tsx`](https://github.com/shawnji33/quantbase/blob/main/app/strategies/page.tsx) — route entry, renders `<Marketplace />`
+- [`app/strategies/layout.tsx`](https://github.com/shawnji33/quantbase/blob/main/app/strategies/layout.tsx) — fixed header + sidebar shell
+- [`app/layout.tsx`](https://github.com/shawnji33/quantbase/blob/main/app/layout.tsx) — root layout, fonts, providers
+- [`app/template.tsx`](https://github.com/shawnji33/quantbase/blob/main/app/template.tsx) — page-transition wrapper
+- [`app/globals.css`](https://github.com/shawnji33/quantbase/blob/main/app/globals.css) — design tokens / global CSS
+
+**Page + card**
+- [`components/marketplace/marketplace.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/marketplace/marketplace.tsx) — search / filters / sort / results grid
+- [`components/marketplace/card-sparkline.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/marketplace/card-sparkline.tsx) — strategy card
+- [`components/price-chart.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/price-chart.tsx) — interactive chart
+- [`components/risk-score.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/risk-score.tsx) — risk meter + methodology modal
+
+**Data & utilities**
+- [`lib/strategies.ts`](https://github.com/shawnji33/quantbase/blob/main/lib/strategies.ts) — mock data + types
+- [`lib/utils.ts`](https://github.com/shawnji33/quantbase/blob/main/lib/utils.ts) — `cn()` helper
+- [`components/theme-provider.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/theme-provider.tsx) — theme provider
+- [`components/figma-capture-loader.tsx`](https://github.com/shawnji33/quantbase/blob/main/components/figma-capture-loader.tsx) — dev-only capture loader
+
+**shadcn/ui primitives used**
+- [`button`](https://github.com/shawnji33/quantbase/blob/main/components/ui/button.tsx) ·
+  [`card`](https://github.com/shawnji33/quantbase/blob/main/components/ui/card.tsx) ·
+  [`input`](https://github.com/shawnji33/quantbase/blob/main/components/ui/input.tsx) ·
+  [`select`](https://github.com/shawnji33/quantbase/blob/main/components/ui/select.tsx) ·
+  [`dialog`](https://github.com/shawnji33/quantbase/blob/main/components/ui/dialog.tsx) ·
+  [`tooltip`](https://github.com/shawnji33/quantbase/blob/main/components/ui/tooltip.tsx)
+
+**Browse folders**
+- [`components/marketplace/`](https://github.com/shawnji33/quantbase/tree/main/components/marketplace) ·
+  [`app/strategies/`](https://github.com/shawnji33/quantbase/tree/main/app/strategies)
