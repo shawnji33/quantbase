@@ -1,11 +1,11 @@
 # Quantbase — Design Prototype Handoff
 
-A high-fidelity, front-end prototype of the Quantbase **Explore strategies** marketplace,
-built for design sign-off and team feedback. This document is the single source of truth for
-the dev team to review, run, and extend the work.
+A high-fidelity, front-end prototype of the Quantbase **Explore strategies** marketplace and
+the **new onboarding flow**, built for design sign-off and team feedback. This document is the
+single source of truth for the dev team to review, run, and extend the work.
 
 - **Status:** Front-end only (no backend, no real auth). All data is mock.
-- **Prepared:** 2026-07 · **Owner:** Shawn (shawn@surmount.ai)
+- **Prepared:** 2026-07 (onboarding added 2026-07-15) · **Owner:** Shawn (shawn@surmount.ai)
 
 ---
 
@@ -14,12 +14,22 @@ the dev team to review, run, and extend the work.
 | Resource | URL |
 |---|---|
 | **Live prototype** (public, no login) | https://quantbase-five.vercel.app/strategies |
-| **Login screen** | https://quantbase-five.vercel.app/login |
+| **Login / sign-up** (incl. email-code verify) | https://quantbase-five.vercel.app/login |
+| **Onboarding flow** (the new deliverable) | https://quantbase-five.vercel.app/onboarding |
+| **Portfolio builder v2 — draft, not in flow yet** | https://quantbase-five.vercel.app/drafts/portfolio |
 | **GitHub repo** (private) | https://github.com/shawnji33/quantbase |
 | **Figma file** | https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase |
 | **Vercel project** | `quantbase` (scope: shawns-projects) |
 
 Production alias: `quantbase-five.vercel.app` · Root `/` redirects to `/login`.
+
+Figma pages for the onboarding work:
+
+| Figma page | Contents |
+|---|---|
+| **Production — Onboarding (Sidebar shell)** | All 14 shipped screens captured as editable layers (welcome → done, incl. funding variants A/B/C) — [open](https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase?node-id=24258-2) |
+| **Onboarding flows — Jul 2026** | The 5-shell exploration archive (25 screens, image boards) — [open](https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase?node-id=24233-2) |
+| **Draft — Portfolio builder v2** | Wealthsimple-style builder redesign under team review — [open](https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase?node-id=24267-2) |
 
 ---
 
@@ -59,7 +69,8 @@ Node 18+ recommended. No environment variables are required (no backend).
 | Route | File | Purpose |
 |---|---|---|
 | `/` | `app/page.tsx` | Redirects to `/login` |
-| `/login` | `app/login/page.tsx` | Auth UI (sign in / create account) — **UI only** |
+| `/login` | `app/login/page.tsx` | Auth UI (sign in / create account + email-code verify) — **UI only** |
+| `/onboarding` | `app/onboarding/page.tsx` → `components/onboarding/flow.tsx` | Full onboarding flow: intent fork → risk/experience → portfolio builder → bank/funding → KYC → agreements. Sidebar shell (brand rail, content vertically centered on lg screens). Dev deep links: `?step=<id>&fund=a\|b\|c&name=<first>`. Funding step keeps a floating A/B/C variant switcher (decision still open). |
 | `/strategies` | `app/strategies/page.tsx` → `components/marketplace/marketplace.tsx` | The marketplace (the main deliverable) |
 
 `app/strategies/layout.tsx` provides the fixed app shell (top bar + sidebar; only the
@@ -209,7 +220,45 @@ File: https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase
 
 ---
 
-## 12. Strategy page — file index
+## 12. Onboarding flow — overview & file index
+
+**Flow:** sign-up (`/login`) → email-code verify → welcome → US-residency gate (non-US → waitlist,
+cannot register) → intent fork (specific strategy / build-me-a-portfolio / build-my-own) →
+[guided path: risk question → experience matrix → "building your portfolio" moment] →
+portfolio builder → bank connect (Plaid mock / manual / demo mode) → funding → KYC ×5 →
+agreements + signature → optional "how did you hear" → done.
+
+**Key behaviors**
+- Shell: purple brand rail (260px, 300px on ≥1536px screens) with phase progress, per-phase
+  reassurance copy, and a live portfolio preview; step content vertically centered on lg screens.
+- Portfolio recommendation comes from `recommendPortfolio()` in `lib/onboarding.ts` — risk answer
+  caps strategy risk, no crypto experience filters crypto out, weights 40/30/20/10.
+- No auto-rebalancing anywhere by design in the v2 draft; production builder still auto-rebalances
+  (pending team decision on the draft).
+- Dev deep links for review/capture: `/onboarding?step=<id>&fund=a|b|c&name=<first>`.
+
+**Open decisions**
+- **Funding variant** — A (skippable, default) / B (defer to first invest) / C (required). A floating
+  "Design review" switcher on the funding step flips between them in prod.
+- **Portfolio builder v2** (`/drafts/portfolio`) — donut + steppers + "why this mix" redesign, not
+  yet wired into the flow.
+
+**Files**
+- `app/onboarding/page.tsx` — route entry
+- `components/onboarding/flow.tsx` — step state machine, phase map, deep links
+- `components/onboarding/shells.tsx` — the sidebar shell (rail, progress, back/save-exit)
+- `components/onboarding/steps-about.tsx` — welcome, eligibility, waitlist, intent, risk, experience, heard
+- `components/onboarding/portfolio-builder.tsx` — production builder + "generating" moment
+- `components/onboarding/portfolio-builder-v2.tsx` — draft v2 (donut, steppers, add panel)
+- `components/onboarding/bank-funding.tsx` — bank connect, Plaid mock, manual form, funding A/B/C
+- `components/onboarding/kyc.tsx` — 5 KYC steps, affiliations compliance modal, agreements, done
+- `components/onboarding/ui.tsx` — StepShell, OptionCard, chips, notes
+- `lib/onboarding.ts` — questions, recommendation logic, KYC ranges, agreements
+- `app/drafts/portfolio/page.tsx` — draft route (unlinked, noindex)
+
+---
+
+## 13. Strategy page — file index
 
 Every file that makes up the `/strategies` (Explore strategies) page.
 

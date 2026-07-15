@@ -6,7 +6,17 @@ import { Button } from "@/components/ui/button"
 import { RiskScore } from "@/components/risk-score"
 
 /** Concept A — matches Figma node 24121:14535. */
-export function SparklineCard({ s }: { s: Strategy }) {
+export function SparklineCard({
+  s,
+  actionLabel = "Invest",
+  actionDisabled = false,
+  onAction,
+}: {
+  s: Strategy
+  actionLabel?: string
+  actionDisabled?: boolean
+  onAction?: () => void
+}) {
   return (
     <div className="flex flex-col gap-2 rounded-[16px] border border-black/5 bg-[#efefef] p-2 shadow-[0px_1px_6px_0px_rgba(10,13,18,0.03)]">
       {/* title block (on the gray frame) */}
@@ -61,10 +71,16 @@ export function SparklineCard({ s }: { s: Strategy }) {
         </div>
       </div>
 
-      {/* clickable CTA → strategy detail */}
-      <Button variant="secondary" size="lg" className="w-full font-semibold">
-        Invest
-        <RiArrowRightLine className="size-5" />
+      {/* clickable CTA → strategy detail (or a caller-provided action) */}
+      <Button
+        variant="secondary"
+        size="lg"
+        className="w-full font-semibold"
+        disabled={actionDisabled}
+        onClick={onAction}
+      >
+        {actionLabel}
+        {!actionDisabled && <RiArrowRightLine className="size-5" />}
       </Button>
     </div>
   )
