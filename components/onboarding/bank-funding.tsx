@@ -90,7 +90,7 @@ export function BankStep({
           onClick={onDemo}
           icon={<RiEyeLine className="size-4.5" />}
           title="Explore in demo mode"
-          description="Look around your dashboard first — you can connect a bank anytime."
+          description="Look around your dashboard first. You can connect a bank anytime."
         />
       </div>
 
@@ -373,7 +373,7 @@ export function FundingStep({
         </TooltipTrigger>
         <TooltipContent className="max-w-64 text-pretty">
           As a rule of thumb, clients often start with 10–25% of their investable assets depending
-          on how close they are to retirement — but any amount works, and you can add or withdraw
+          on how close they are to retirement. Any amount works, and you can add or withdraw
           anytime.
         </TooltipContent>
       </Tooltip>
@@ -385,7 +385,7 @@ export function FundingStep({
       {variant === "a" && (
         <StepShell
               title="Add your first deposit"
-          subtitle="Start with any amount — add more or withdraw anytime."
+          subtitle="Start with any amount. You can add more or withdraw anytime."
           footer={
             <>
               <Button size="lg" className="w-full" disabled={!amount} onClick={() => onContinue(amount)}>
@@ -393,7 +393,7 @@ export function FundingStep({
                 <RiArrowRightLine className="size-5" />
               </Button>
               <Button variant="ghost" size="lg" className="w-full text-muted-foreground" onClick={() => onContinue(null)}>
-                Skip for now — fund anytime
+                Skip for now, fund anytime
               </Button>
             </>
           }
@@ -437,8 +437,8 @@ export function FundingStep({
 
       {variant === "b" && (
         <StepShell
-              title="You're set — fund when you're ready"
-          subtitle="No deposit needed today — we'll ask when you make your first investment."
+              title="You're set. Fund when you're ready"
+          subtitle="No deposit needed today. We'll ask when you make your first investment."
           footer={
             <Button size="lg" className="w-full" onClick={() => onContinue(null)}>
               Continue
@@ -454,7 +454,7 @@ export function FundingStep({
             <ol className="flex flex-col gap-2.5 text-sm text-[#47475d]">
               <li className="flex gap-2.5"><StepDot n={1} /> Pick a strategy and tap Invest</li>
               <li className="flex gap-2.5"><StepDot n={2} /> Choose the amount that feels right</li>
-              <li className="flex gap-2.5"><StepDot n={3} /> We transfer it from your linked bank — that&apos;s it</li>
+              <li className="flex gap-2.5"><StepDot n={3} /> We transfer it from your linked bank, and that&apos;s it</li>
             </ol>
           </div>
           {guidance}
@@ -464,7 +464,7 @@ export function FundingStep({
       {variant === "c" && (
         <StepShell
               title="Fund your account"
-          subtitle="Choose an amount that feels comfortable — the minimum is $1."
+          subtitle="Choose an amount that feels comfortable. The minimum is just $1."
           footer={
             <Button size="lg" className="w-full" disabled={!amount || amount < 1} onClick={() => onContinue(amount)}>
               {amount ? `Deposit $${amount.toLocaleString()}` : "Continue"}

@@ -72,6 +72,10 @@ Node 18+ recommended. No environment variables are required (no backend).
 | `/login` | `app/login/page.tsx` | Auth UI (sign in / create account + email-code verify) — **UI only** |
 | `/onboarding` | `app/onboarding/page.tsx` → `components/onboarding/flow.tsx` | Full onboarding flow: intent fork → risk/experience → portfolio builder → bank/funding → KYC → agreements. Sidebar shell (brand rail, content vertically centered on lg screens). Dev deep links: `?step=<id>&fund=a\|b\|c&name=<first>`. Funding step keeps a floating A/B/C variant switcher (decision still open). |
 | `/strategies` | `app/strategies/page.tsx` → `components/marketplace/marketplace.tsx` | The marketplace (the main deliverable) |
+| `/portfolio` | `app/portfolio/page.tsx` → `components/portfolio/dashboard-gate.tsx` | Dashboard (placeholder redesign, not final): account-approval states (in review / no portfolio / action needed / approved, floating "Account" switcher + `?status=`) gating the portfolio overview (aggregate hero, allocation donut, value chart, strategy table) |
+| `/portfolio/[strategyId]` | `app/portfolio/[strategyId]/page.tsx` | Strategy detail: breadcrumb, switcher-as-title, holdings donut, value chart, Buy/Sell. Mock data in `lib/portfolio.ts` |
+| `/verify-documents` | `app/verify-documents/page.tsx` | Identity-verification uploads: per-document drop zones w/ simulated progress, submission receipt persisted (sessionStorage) and surfaced on the dashboard tracker |
+| `/edit-portfolio` | `app/edit-portfolio/page.tsx` | Standalone starting-portfolio editor (save & exit back to the in-review dashboard); `?blank=1` starts empty |
 
 `app/strategies/layout.tsx` provides the fixed app shell (top bar + sidebar; only the
 main column scrolls). `app/template.tsx` adds a subtle page-transition fade.

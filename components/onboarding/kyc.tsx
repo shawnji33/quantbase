@@ -189,7 +189,7 @@ export function KycSsnStep({ onContinue }: { onContinue: () => void }) {
       </Field>
       <SecureNote>
         Encrypted in transit and at rest. Quantbase never sells your data, and your SSN is shared
-        only with Alpaca Securities to open your brokerage account — never with anyone else.
+        only with Alpaca Securities to open your brokerage account, never with anyone else.
       </SecureNote>
       {ALPACA_NOTE}
     </StepShell>
@@ -216,7 +216,7 @@ export function KycEmploymentStep({ onContinue }: { onContinue: () => void }) {
   return (
     <StepShell
       title="Your employment"
-      subtitle="Standard KYC — it doesn't affect what you can invest in."
+      subtitle="Standard KYC. It doesn't affect what you can invest in."
       footer={
         <Button size="lg" className="w-full" disabled={!valid} onClick={onContinue}>
           Continue
@@ -321,7 +321,7 @@ export function KycAffiliationsStep({ onContinue }: { onContinue: () => void }) 
       title="Declare any affiliations"
       subtitle={
         <>
-          This is uncommon — most people select “none.” Let us know if you (or an immediate family
+          This is uncommon, and most people select “none.” Let us know if you (or an immediate family
           member) are currently or formerly: a politically exposed person or public official;
           affiliated with or employed by a stock exchange, regulatory body, FINRA, a member firm of
           an exchange, or a municipal securities broker-dealer; or an officer or 10%-or-greater
@@ -442,7 +442,7 @@ export function AgreementsStep({ onSubmit }: { onSubmit: () => void }) {
         ))}
       </div>
 
-      <Field id="signature" label="Signature — type your full legal name">
+      <Field id="signature" label="Signature: type your full legal name">
         <Input
           id="signature"
           value={signature}
@@ -485,15 +485,15 @@ export function DoneStep({
         </h1>
         <p className="mx-auto max-w-sm text-sm leading-6 text-muted-foreground">
           {demo
-            ? "You're in demo mode — finish connecting your account whenever you're ready."
-            : "We'll email you when your brokerage application is approved — usually within a day."}
+            ? "You're in demo mode. Finish connecting your account whenever you're ready."
+            : "We'll email you when your brokerage application is approved, usually within a day."}
         </p>
       </div>
 
       {!demo && (
         <div className="flex w-full flex-col gap-2 text-left">
           <SummaryRow label="Portfolio" value={`${strategyCount} ${strategyCount === 1 ? "strategy" : "strategies"} selected`} />
-          <SummaryRow label="First deposit" value={funded ? `$${funded.toLocaleString()}` : "Skipped — fund anytime"} />
+          <SummaryRow label="First deposit" value={funded ? `$${funded.toLocaleString()}` : "Skipped, fund anytime"} />
           <SummaryRow label="Identity" value="Submitted to Alpaca Securities" />
         </div>
       )}

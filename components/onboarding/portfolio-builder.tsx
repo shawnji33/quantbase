@@ -98,7 +98,7 @@ function copyFor(path: IntentPath) {
       return {
         title: "Your recommended starting portfolio",
         subtitle:
-          "Built from your answers — a starting point, not a verdict. Adjust, remove, or add anything.",
+          "Built from your answers as a starting point, not a verdict. Adjust, remove, or add anything.",
       }
     case "explore":
       return {
@@ -191,11 +191,13 @@ export function PortfolioStep({
   allocations,
   onChange,
   onContinue,
+  continueLabel = "Continue",
 }: {
   path: IntentPath
   allocations: Weighted[]
   onChange: (a: Weighted[]) => void
   onContinue: () => void
+  continueLabel?: string
 }) {
   const { title, subtitle } = copyFor(path)
   const total = allocations.reduce((sum, a) => sum + a.weight, 0)
@@ -214,7 +216,7 @@ export function PortfolioStep({
               : `${allocations.length} ${allocations.length === 1 ? "strategy" : "strategies"} · ${total}% allocated`}
           </p>
           <Button size="lg" disabled={!canContinue} onClick={onContinue}>
-            Continue
+            {continueLabel}
             <RiArrowRightLine className="size-5" />
           </Button>
         </div>
@@ -396,7 +398,7 @@ function AddStrategyDialog({
         <DialogHeader>
           <DialogTitle>Browse strategies</DialogTitle>
           <DialogDescription>
-            The full Quantbase marketplace — tap once to add a strategy, tap again to remove it.
+            The full Quantbase marketplace. Tap once to add a strategy, tap again to remove it.
           </DialogDescription>
         </DialogHeader>
         <div className="relative">

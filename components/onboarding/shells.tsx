@@ -72,11 +72,11 @@ function BackButton({ onBack }: { onBack: () => void }) {
 }
 
 const RAIL_QUOTES = [
-  "No wrong answers here — this just calibrates what fits you.",
+  "No wrong answers here. This just calibrates what fits you.",
   "Recommendations are a starting point, not a verdict. Adjust anything.",
-  "Your money stays in your control — nothing moves until you say so.",
+  "Your money stays in your control. Nothing moves until you say so.",
   "Identity checks are required by regulators. Encrypted end to end.",
-  "Almost there — three documents and a signature.",
+  "Almost there. Just three documents and a signature.",
 ]
 
 export function OnboardingShell(p: ShellProps) {

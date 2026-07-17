@@ -10,6 +10,9 @@ type PriceChartProps = {
   startYear: number
   /** hypothetical amount invested at inception, for the tooltip value */
   baseAmount?: number
+  /** exact series window — overrides startYear-based date spreading when set */
+  startDate?: Date
+  endDate?: Date
   height?: number
   className?: string
   /** fixed line color (e.g. brand). Omit to color green/red by net change. */
@@ -46,6 +49,8 @@ export function PriceChart({
   data,
   startYear,
   baseAmount = 10000,
+  startDate,
+  endDate,
   height = 96,
   className,
   color,
@@ -86,8 +91,8 @@ export function PriceChart({
 
   // dates spread evenly from inception → today (client only; not in initial DOM)
   const dates = useMemo(() => {
-    const start = new Date(startYear, 0, 1).getTime()
-    const end = new Date(2026, 5, 1).getTime()
+    const start = (startDate ?? new Date(startYear, 0, 1)).getTime()
+    const end = (endDate ?? new Date(2026, 5, 1)).getTime()
     return data.map((_, i) => {
       const t = start + ((end - start) * i) / (data.length - 1)
       return new Date(t).toLocaleDateString("en-US", {
@@ -96,7 +101,7 @@ export function PriceChart({
         year: "numeric",
       })
     })
-  }, [data, startYear])
+  }, [data, startYear, startDate, endDate])
 
   function onMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!width) return

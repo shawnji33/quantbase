@@ -45,7 +45,7 @@ export function WelcomeStep({
           {name ? `${name}, let's get started` : "Let's get started"}
         </h1>
         <p className="mx-auto max-w-sm text-sm leading-6 text-muted-foreground">
-          A few quick questions to make sure our strategies are a fit for you — it takes about
+          A few quick questions to make sure our strategies are a fit for you. It takes about
           two minutes.
         </p>
       </div>
@@ -71,7 +71,7 @@ export function EligibilityStep({
 
   return (
     <StepShell
-      title="First — are you a U.S. resident?"
+      title="First, are you a U.S. resident?"
       subtitle="Quantbase is currently available to U.S. residents only."
       footer={
         <Button
@@ -116,7 +116,7 @@ export function WaitlistStep({ onBack }: { onBack: () => void }) {
     >
       {joined ? (
         <div className="rounded-xl border border-[var(--border-secondary)] bg-card p-5 text-sm text-[#47475d] shadow-[var(--shadow-card)]">
-          You&apos;re on the list — we&apos;ll email you when Quantbase opens up in your country.
+          You&apos;re on the list. We&apos;ll email you when Quantbase opens up in your country.
         </div>
       ) : (
         <form
@@ -170,7 +170,7 @@ export function IntentStep({
           onSelect={() => onSelect("specific")}
           icon={<RiFocus3Line className="size-4.5" />}
           title="A specific strategy"
-          description="You already have a strategy in mind — jump straight to it."
+          description="You already have a strategy in mind, so jump straight to it."
         />
         <OptionCard
           selected={intent === "guided"}
@@ -184,7 +184,7 @@ export function IntentStep({
           onSelect={() => onSelect("explore")}
           icon={<RiCompass3Line className="size-4.5" />}
           title="I'll build my own"
-          description="Browse the full marketplace and pick strategies yourself — no hand-holding."
+          description="Browse the full marketplace and pick strategies yourself, no hand-holding."
         />
       </div>
     </StepShell>
@@ -209,8 +209,8 @@ export function RiskStep({
       title="If your portfolio lost 30% in three months, what would you do?"
       subtitle={
         novice
-          ? "From September to November 2008, U.S. stocks lost over 31% — drops like this happen. There's no wrong answer."
-          : "There's no wrong answer — this calibrates which strategies fit you."
+          ? "From September to November 2008, U.S. stocks lost over 31%. Drops like this happen, and there's no wrong answer."
+          : "There's no wrong answer. This just calibrates which strategies fit you."
       }
       footer={
         <Button size="lg" className="w-full" disabled={!value} onClick={onContinue}>
@@ -250,7 +250,7 @@ export function ExperienceStep({
   return (
     <StepShell
       title="What have you invested in before?"
-      subtitle="Strategies have different complexities — this helps us match you."
+      subtitle="Strategies have different complexities. This helps us match you."
       footer={
         <Button size="lg" className="w-full" disabled={!complete} onClick={onContinue}>
           Continue
@@ -322,7 +322,7 @@ export function HeardStep({
   return (
     <StepShell
       title="How did you hear about Quantbase?"
-      subtitle="Optional — it helps us know where to say thanks."
+      subtitle="Optional. It just helps us know where to say thanks."
       footer={
         <>
           <Button size="lg" className="w-full" disabled={!choice} onClick={onContinue}>

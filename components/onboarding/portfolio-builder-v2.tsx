@@ -41,7 +41,7 @@ const WHY = [
   },
   {
     icon: RiFilterOffLine,
-    text: "Under a year of crypto experience — crypto-heavy strategies were filtered out.",
+    text: "Under a year of crypto experience, so crypto-heavy strategies were filtered out.",
   },
   {
     icon: RiSparklingLine,

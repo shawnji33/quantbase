@@ -269,7 +269,17 @@ export function OnboardingFlow() {
           strategyCount={allocations.length}
           funded={funded}
           demo={demo}
-          onFinish={() => router.push("/strategies")}
+          onFinish={() => {
+            if (demo) {
+              router.push("/strategies")
+              return
+            }
+            // Hand off to the dashboard in its account-approval state, carrying
+            // the portfolio built during onboarding.
+            sessionStorage.setItem("qb-account-status", "review")
+            sessionStorage.setItem("qb-starting-portfolio", JSON.stringify(allocations))
+            router.push("/portfolio")
+          }}
         />
       )}
     </>
