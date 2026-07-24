@@ -63,7 +63,7 @@ function BackButton({ onBack }: { onBack: () => void }) {
     <button
       type="button"
       onClick={onBack}
-      className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      className="flex items-center gap-1.5 text-sm font-medium text-[#575872] transition-colors hover:text-[#363643]"
     >
       <RiArrowLeftLine className="size-4" />
       Back
@@ -81,7 +81,7 @@ const RAIL_QUOTES = [
 
 export function OnboardingShell(p: ShellProps) {
   return (
-    <div className="grid min-h-svh lg:grid-cols-[260px_1fr] 2xl:grid-cols-[300px_1fr]">
+    <div className="force-light grid min-h-svh lg:grid-cols-[260px_1fr] 2xl:grid-cols-[300px_1fr]">
       {/* rail */}
       <aside className="relative hidden overflow-hidden bg-primary text-primary-foreground lg:flex lg:flex-col lg:justify-between lg:p-6 2xl:p-8">
         <div

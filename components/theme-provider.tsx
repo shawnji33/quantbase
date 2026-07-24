@@ -10,12 +10,13 @@ function ThemeProvider({
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      // No dark mode for now — force light everywhere (portals included).
+      // Restore defaultTheme="system" + enableSystem + <ThemeHotkey /> when
+      // dark styles actually exist.
+      forcedTheme="light"
       disableTransitionOnChange
       {...props}
     >
-      <ThemeHotkey />
       {children}
     </NextThemesProvider>
   )

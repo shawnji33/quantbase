@@ -278,6 +278,8 @@ export function OnboardingFlow() {
             // the portfolio built during onboarding.
             sessionStorage.setItem("qb-account-status", "review")
             sessionStorage.setItem("qb-starting-portfolio", JSON.stringify(allocations))
+            if (bankLabel) sessionStorage.setItem("qb-bank-label", bankLabel)
+            if (funded != null) sessionStorage.setItem("qb-funded-amount", String(funded))
             router.push("/portfolio")
           }}
         />

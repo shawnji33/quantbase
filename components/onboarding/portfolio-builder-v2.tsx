@@ -6,14 +6,23 @@
 // header row with Continue up top · donut + stat tiles hero · flat allocation
 // list · gray "Add strategies" panel (no search) · "Why we built this for you"
 // in the right rail · donut segments with rounded (6px) corners.
+// On xl+ the layout opens up Wealthsimple-style: wider container, donut +
+// "My portfolio" masthead (stat tiles fold into its subtitle). The page is
+// capped to the viewport: hero, allocation header and right rail stay put,
+// only the holdings list scrolls (boundary marked by the header's border).
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   RiAddLine,
+  RiArrowDownLine,
   RiArrowRightLine,
   RiArrowRightSLine,
+  RiBuildingLine,
+  RiCheckboxCircleFill,
+  RiCheckLine,
   RiCloseLine,
+  RiCoinsLine,
   RiEqualizer2Line,
   RiFilterOffLine,
   RiScales3Line,
@@ -21,10 +30,12 @@ import {
 } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
+import { PriceChart } from "@/components/price-chart"
 import { cn } from "@/lib/utils"
-import { strategies, riskLabel, type Strategy } from "@/lib/strategies"
-import { recommendPortfolio, type Weighted } from "@/lib/onboarding"
+import { strategies, riskLabel, fmtPct, type Strategy } from "@/lib/strategies"
+import { recommendPortfolio, type IntentPath, type Weighted } from "@/lib/onboarding"
 import { OnboardingShell } from "@/components/onboarding/shells"
+import { IntentStep } from "@/components/onboarding/steps-about"
 
 const byId = new Map(strategies.map((s) => [s.id, s]))
 
@@ -53,6 +64,27 @@ export function PortfolioBuilderDraft() {
   const router = useRouter()
   const [holdings, setHoldings] = useState<Weighted[]>(SEEDED)
   const [hovered, setHovered] = useState<string | null>(null)
+
+  // in-place drill-ins (push/pop via the shell's step animation):
+  // intent ← builder → market. Back from the builder revisits the intent fork.
+  const [view, setView] = useState<"intent" | "builder" | "market">("builder")
+  const [dir, setDir] = useState<1 | -1>(1)
+  const [marketSel, setMarketSel] = useState(strategies[0].id)
+  const [intent, setIntent] = useState<IntentPath | null>("guided")
+
+  // toast: enter + timed exit animation pair, finalized on animationend
+  const [toast, setToast] = useState<{ key: number; message: string; leaving: boolean } | null>(
+    null,
+  )
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function showToast(message: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast({ key: Date.now(), message, leaving: false })
+    toastTimer.current = setTimeout(
+      () => setToast((t) => (t ? { ...t, leaving: true } : t)),
+      2600,
+    )
+  }
 
   const total = holdings.reduce((sum, h) => sum + h.weight, 0)
   const balanced = total === 100
@@ -101,17 +133,52 @@ export function PortfolioBuilderDraft() {
 
   return (
     <OnboardingShell
-      phaseIdx={1}
+      phaseIdx={view === "intent" ? 0 : 1}
       phaseFrac={1}
       canBack
-      onBack={() => router.back()}
+      onBack={() => {
+        if (view === "market") {
+          setDir(-1)
+          setView("builder")
+        } else if (view === "builder") {
+          setDir(-1)
+          setView("intent")
+        } else {
+          router.back()
+        }
+      }}
       onExit={() => router.push("/login")}
       onJumpPhase={() => {}}
       allocations={holdings}
-      dir={1}
-      stepKey="portfolio-draft"
+      dir={dir}
+      stepKey={`portfolio-${view}`}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pt-8 pb-16">
+      {view === "intent" ? (
+        <IntentStep
+          intent={intent}
+          onSelect={setIntent}
+          onContinue={() => {
+            setDir(1)
+            setView("builder")
+          }}
+        />
+      ) : view === "market" ? (
+        <MarketView
+          selected={marketSel}
+          onSelect={setMarketSel}
+          inPortfolio={new Set(holdings.map((h) => h.id))}
+          onToggle={(s) => {
+            if (holdings.some((h) => h.id === s.id)) {
+              remove(s.id)
+              showToast(`${s.name} removed from your portfolio`)
+            } else {
+              add(s.id)
+              showToast(`${s.name} added to your portfolio`)
+            }
+          }}
+        />
+      ) : (
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pt-8 pb-16 xl:h-[calc(100svh-3.5rem)] xl:max-w-[1440px] xl:gap-8 xl:overflow-hidden xl:px-10 xl:pt-10 xl:pb-8">
         {/* header: title + Continue up top */}
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-xl font-semibold tracking-tight text-[#363643]">
@@ -123,11 +190,11 @@ export function PortfolioBuilderDraft() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-1 items-start gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch xl:gap-x-10 2xl:gap-x-16">
           {/* ---------- left column ---------- */}
-          <div className="flex min-w-0 flex-col gap-6">
-            {/* hero: donut + stat tiles */}
-            <div className="flex flex-col items-center gap-6 md:flex-row">
+          <div className="flex min-w-0 flex-col gap-6 xl:min-h-0 xl:gap-8">
+            {/* hero: donut + stat tiles (xl+: donut + masthead) */}
+            <div className="flex flex-col items-center gap-6 md:flex-row xl:gap-10 xl:py-4 2xl:gap-12 2xl:py-6">
               <Donut
                 holdings={holdings}
                 colorOf={colorOf}
@@ -135,7 +202,17 @@ export function PortfolioBuilderDraft() {
                 onHover={setHovered}
                 total={total}
               />
-              <div className="flex w-full flex-1 flex-col justify-center gap-6 self-stretch">
+              <div className="hidden min-w-0 flex-1 flex-col gap-2.5 xl:flex">
+                <h2 className="text-3xl font-semibold tracking-tight text-[#363643] 2xl:text-4xl">
+                  My portfolio
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {holdings.length} {holdings.length === 1 ? "strategy" : "strategies"}
+                  {largest &&
+                    ` · Largest position ${largest.weight}% ${byId.get(largest.id)?.name ?? ""}`}
+                </p>
+              </div>
+              <div className="flex w-full flex-1 flex-col justify-center gap-6 self-stretch xl:hidden">
                 <StatCard
                   label="Largest position"
                   value={largest ? `${largest.weight}%` : "—"}
@@ -145,10 +222,10 @@ export function PortfolioBuilderDraft() {
               </div>
             </div>
 
-            <hr className="border-t border-[var(--border-secondary)]" />
+            <hr className="border-t border-[var(--border-secondary)] xl:hidden" />
 
-            {/* allocation header */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* allocation header — border marks the scroll boundary on xl */}
+            <div className="flex flex-wrap items-center justify-between gap-3 xl:border-b xl:border-[var(--border-secondary)] xl:pb-4">
               <div className="flex items-baseline gap-3">
                 <h2 className="text-base font-semibold text-[#363643]">Allocation</h2>
                 <span className="text-sm text-muted-foreground">
@@ -179,8 +256,8 @@ export function PortfolioBuilderDraft() {
               </div>
             </div>
 
-            {/* rows */}
-            <div className="-mt-1 flex flex-col gap-3">
+            {/* rows — the only scrollable region on xl */}
+            <div className="-mt-1 flex flex-col gap-3 xl:min-h-0 xl:flex-1 xl:-mx-1 xl:overflow-y-auto xl:px-1 xl:pt-1 xl:pb-4">
               {holdings.map((h) => {
                 const s = byId.get(h.id)
                 if (!s) return null
@@ -203,17 +280,10 @@ export function PortfolioBuilderDraft() {
                   Add a strategy to start building.
                 </div>
               )}
-              {!balanced && holdings.length > 0 && (
-                <p className="text-xs text-[#d92d20]">
-                  {total > 100
-                    ? `Remove ${total - 100}% to continue.`
-                    : `Allocate ${100 - total}% more to continue.`}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* ---------- right column ---------- */}
+          {/* ---------- right column — fixed in place on xl (page doesn't scroll) ---------- */}
           <div className="flex flex-col gap-6">
             {/* gray "Add strategies" panel */}
             <div className="flex flex-col gap-4 rounded-[16px] border border-[var(--border-secondary)] bg-[#efefef] p-[13px] shadow-[var(--shadow-card)]">
@@ -263,17 +333,21 @@ export function PortfolioBuilderDraft() {
                 )}
               </div>
 
-              {/* marketplace hand-off */}
-              <a
-                href="/strategies"
-                className="group flex items-center justify-between rounded-[12px] border border-[var(--border-secondary)] bg-[#fcfcfc] px-[17px] py-[15px] transition-colors hover:bg-white"
+              {/* marketplace drill-in */}
+              <button
+                type="button"
+                onClick={() => {
+                  setDir(1)
+                  setView("market")
+                }}
+                className="group flex items-center justify-between rounded-[12px] border border-[var(--border-secondary)] bg-[#fcfcfc] px-[17px] py-[15px] text-left transition-colors hover:bg-white"
               >
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-[#363643]">Browse marketplace</p>
                   <p className="text-xs text-muted-foreground">View all strategies on Quantbase</p>
                 </div>
                 <RiArrowRightSLine className="size-5 text-[#71717b] transition-transform duration-150 group-hover:translate-x-0.5" />
-              </a>
+              </button>
             </div>
 
             {/* why we built this */}
@@ -293,7 +367,258 @@ export function PortfolioBuilderDraft() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* add-to-portfolio toast */}
+      {toast && (
+        <div className="pointer-events-none fixed bottom-8 left-1/2 z-50 -translate-x-1/2">
+          <div
+            key={toast.key}
+            onAnimationEnd={() => {
+              if (toast.leaving) setToast(null)
+            }}
+            className={cn(
+              "flex items-center gap-2.5 rounded-full bg-[#363643] py-2.5 pr-5 pl-3.5 text-sm font-medium text-white shadow-[0px_12px_32px_rgba(10,13,18,0.24)]",
+              toast.leaving
+                ? "animate-out fade-out slide-out-to-bottom-3 fill-mode-forwards duration-200 ease-in"
+                : "animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out",
+            )}
+          >
+            <RiCheckboxCircleFill className="size-5 shrink-0 text-[#5fbf8f]" />
+            {toast.message}
+          </div>
+        </div>
+      )}
     </OnboardingShell>
+  )
+}
+
+/* ------------------------------- marketplace -------------------------------- */
+// In-place master-detail: strategy list on the left, details on the right.
+// Same viewport-capped behavior as the builder on xl — only the panes scroll.
+
+const usdWhole = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+})
+
+function MarketView({
+  selected,
+  onSelect,
+  inPortfolio,
+  onToggle,
+}: {
+  selected: string
+  onSelect: (id: string) => void
+  inPortfolio: Set<string>
+  onToggle: (s: Strategy) => void
+}) {
+  const s = byId.get(selected) ?? strategies[0]
+  const added = inPortfolio.has(s.id)
+  const endValue = usdWhole.format((10000 * s.series[s.series.length - 1]) / s.series[0])
+
+  // x-axis year ticks, inception → the series' end (mid-2026)
+  const END_YEAR = 2026
+  const span = END_YEAR - s.inceptionYear
+  const tickCount = Math.min(4, span + 1)
+  const ticks = Array.from({ length: tickCount }, (_, i) =>
+    Math.round(s.inceptionYear + (span * i) / Math.max(tickCount - 1, 1)),
+  )
+
+  const groups: { label: string; items: Strategy[] }[] = [
+    { label: "Quantbase strategies", items: strategies.filter((x) => !x.partner) },
+    { label: "Partner strategies", items: strategies.filter((x) => x.partner) },
+  ]
+
+  const considerations = [
+    {
+      icon: RiScales3Line,
+      text: `${riskLabel(s.risk)} risk (${s.risk.toFixed(1)}/5) — expect daily moves around ±${s.dailyVol.toFixed(1)}%.`,
+    },
+    {
+      icon: RiArrowDownLine,
+      text: `Its worst peak-to-trough decline was ${s.maxDrawdown.toFixed(1)}%. Be ready to hold through similar swings.`,
+    },
+    {
+      icon: RiCoinsLine,
+      text: `You can start with as little as ${usdWhole.format(s.minInvest)}.`,
+    },
+    {
+      icon: RiBuildingLine,
+      text: s.partner
+        ? `Managed by ${s.manager}, a partner fund on Quantbase.`
+        : "Managed in-house by Quantbase.",
+    },
+  ]
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pt-8 pb-16 xl:h-[calc(100svh-3.5rem)] xl:max-w-[1440px] xl:gap-8 xl:overflow-hidden xl:px-10 xl:pt-10 xl:pb-8">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight text-[#363643]">
+          Strategy marketplace
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Explore every strategy on Quantbase and add the ones you like.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 items-start gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-stretch xl:gap-x-10">
+        {/* master list */}
+        <nav className="flex flex-col gap-5 xl:min-h-0 xl:overflow-y-auto xl:pr-1 xl:pb-4">
+          {groups.map((g) => (
+            <div key={g.label} className="flex flex-col gap-1">
+              <p className="px-3 pb-1 text-xs font-medium text-[#575872]">{g.label}</p>
+              {g.items.map((x) => {
+                const active = x.id === selected
+                return (
+                  <button
+                    key={x.id}
+                    type="button"
+                    onClick={() => onSelect(x.id)}
+                    className={cn(
+                      "group flex w-full items-center gap-2 rounded-[10px] px-3 py-2.5 text-left text-sm transition-colors",
+                      active
+                        ? "bg-black/[0.05] font-medium text-[#363643]"
+                        : "text-[#575872] hover:bg-black/[0.03]",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{x.name}</span>
+                    {inPortfolio.has(x.id) && (
+                      <RiCheckLine className="size-4 shrink-0 text-[#1d7e4f]" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* detail pane */}
+        <div
+          key={s.id}
+          className="flex min-w-0 flex-col gap-4 rounded-[20px] border border-black/[0.04] bg-[#eeeeef] p-6 shadow-[0px_12px_32px_rgba(10,13,18,0.08)] duration-300 ease-out animate-in fade-in slide-in-from-right-2 xl:max-h-full xl:self-start xl:overflow-y-auto xl:p-8"
+        >
+          {/* header */}
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1.5">
+              <h2 className="text-2xl font-semibold tracking-tight text-[#363643]">{s.name}</h2>
+              <p className="max-w-xl text-sm leading-5 text-muted-foreground">{s.blurb}</p>
+              <p className="text-xs text-muted-foreground">
+                {s.manager} · {riskLabel(s.risk)} risk · Since {s.inceptionYear}
+              </p>
+            </div>
+            <Button
+              size="lg"
+              variant={added ? "secondary" : "default"}
+              onClick={() => onToggle(s)}
+            >
+              {added ? (
+                <>
+                  <RiCheckLine className="size-5" />
+                  In portfolio
+                </>
+              ) : (
+                <>
+                  <RiAddLine className="size-5" />
+                  Add to portfolio
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* chart card */}
+          <div className="rounded-[12px] border border-[var(--border-secondary)] bg-white p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 pb-4">
+              <div>
+                <p className="text-xs font-medium tracking-[0.3px] text-muted-foreground">
+                  Growth of $10,000 since {s.inceptionYear}
+                </p>
+                <p className="pt-1 text-2xl font-semibold tabular-nums text-[#363643]">
+                  {endValue}
+                </p>
+              </div>
+              <p
+                className={cn(
+                  "text-sm font-medium tabular-nums",
+                  s.inceptionReturn >= 0 ? "text-[#1d7e4f]" : "text-[#d92d20]",
+                )}
+              >
+                {fmtPct(s.inceptionReturn)} since inception
+              </p>
+            </div>
+            <PriceChart
+              data={s.series}
+              startYear={s.inceptionYear}
+              height={180}
+              gradientId={`market-${s.id}`}
+            />
+            {/* x-axis timeline */}
+            <div className="mt-2 flex items-center justify-between border-t border-[var(--border-secondary)] pt-2 text-[11px] tabular-nums text-muted-foreground">
+              {ticks.map((y) => (
+                <span key={y}>{y}</span>
+              ))}
+            </div>
+            <p className="pt-3 text-[11px] leading-4 text-muted-foreground">
+              Hypothetical growth based on historical performance. Past results are no guarantee
+              of future returns.
+            </p>
+          </div>
+
+          {/* fund details */}
+          <div className="rounded-[12px] border border-[var(--border-secondary)] bg-white p-5">
+            <p className="pb-4 text-sm font-semibold text-[#363643]">Fund details</p>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
+              <MarketStat label="1-year return" value={fmtPct(s.oneYear)} signed={s.oneYear} />
+              <MarketStat label="3-year return" value={fmtPct(s.threeYear)} signed={s.threeYear} />
+              <MarketStat
+                label="Since inception"
+                value={fmtPct(s.inceptionReturn)}
+                signed={s.inceptionReturn}
+              />
+              <MarketStat label="Risk" value={`${riskLabel(s.risk)} · ${s.risk.toFixed(1)}/5`} />
+              <MarketStat label="Daily volatility" value={`${s.dailyVol.toFixed(2)}%`} />
+              <MarketStat label="Max drawdown" value={`${s.maxDrawdown.toFixed(1)}%`} />
+              <MarketStat label="Minimum investment" value={usdWhole.format(s.minInvest)} />
+              <MarketStat label="Inception year" value={String(s.inceptionYear)} />
+            </dl>
+          </div>
+
+          {/* key considerations */}
+          <div className="rounded-[12px] border border-[var(--border-secondary)] bg-white p-5">
+            <p className="pb-3 text-sm font-semibold text-[#363643]">Key considerations</p>
+            <ul className="flex flex-col gap-2.5">
+              {considerations.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-start gap-2.5 text-sm leading-5 text-[#47475d]">
+                  <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MarketStat({ label, value, signed }: { label: string; value: string; signed?: number }) {
+  return (
+    <div className="space-y-1">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          "text-sm font-medium tabular-nums",
+          signed === undefined
+            ? "text-[#363643]"
+            : signed >= 0
+              ? "text-[#1d7e4f]"
+              : "text-[#d92d20]",
+        )}
+      >
+        {value}
+      </dd>
+    </div>
   )
 }
 
@@ -412,13 +737,14 @@ function Donut({
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-10 text-center">
         {hoveredStrategy && hoveredHolding ? (
           <>
-            <span
-              className="flex size-7 items-center justify-center rounded-full text-[11px] font-bold text-white"
-              style={{ backgroundColor: colorOf(hoveredStrategy.id) }}
-            >
-              {hoveredStrategy.name.charAt(0)}
-            </span>
-            <p className="text-xs leading-4 font-medium text-[#363643]">{hoveredStrategy.name}</p>
+            <p className="flex items-center gap-1.5 text-xs leading-4 font-medium text-[#363643]">
+              <span
+                aria-hidden
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: colorOf(hoveredStrategy.id) }}
+              />
+              {hoveredStrategy.name}
+            </p>
             <p className="text-xs text-muted-foreground">
               {Math.round((hoveredHolding.weight / denom) * 100)}% of portfolio
             </p>

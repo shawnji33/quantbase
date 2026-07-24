@@ -5,11 +5,12 @@
 // showing, so the dashboard becomes a status tracker instead.
 //
 // Status colors: brand purple = in progress/waiting, amber = action needed,
-// green = completion. Never red for non-errors.
+// green = completion, muted red = terminal rejection only. Never red for
+// non-errors.
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { RiArrowRightSLine, RiCheckLine, RiCompass3Line, RiMailLine, RiQuestionLine, RiSparklingLine, RiStockLine, RiUploadCloud2Line } from "@remixicon/react"
+import { RiArrowRightSLine, RiBankLine, RiCheckLine, RiCloseLine, RiCompass3Line, RiMailLine, RiMoneyDollarCircleLine, RiQuestionLine, RiSparklingLine, RiStockLine, RiUploadCloud2Line } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,7 @@ import {
 export type ApprovalVariant = "review" | "action"
 
 const AMBER = "#B45309"
+const SUPPORT_EMAIL = "support@getquantbase.com"
 
 const strategyName = new Map(strategies.map((s) => [s.id, s.name]))
 
@@ -46,9 +48,13 @@ function stepStates(variant: ApprovalVariant, docsSubmitted: boolean): StepState
 export function PendingApproval({
   variant,
   startingPortfolio,
+  bankLabel,
+  depositAmount,
 }: {
   variant: ApprovalVariant
   startingPortfolio: { id: string; weight: number }[]
+  bankLabel: string | null
+  depositAmount: number | null
 }) {
   // Submission receipt from the upload page, so returning users can see their
   // documents were received and when.
@@ -171,6 +177,47 @@ export function PendingApproval({
         </ol>
       </div>
 
+      {/* pending deposit: on hold until approval, editable/cancelable via support */}
+      {depositAmount !== null && depositAmount > 0 && (
+        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
+          <h2 className="text-base font-semibold text-[#363643]">Your pending deposit</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            This transfer is on hold until your account is approved. Nothing moves until then.
+          </p>
+          <div className="mt-4 flex flex-col gap-2.5">
+            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
+                <RiBankLine className="size-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-[#363643]">
+                  {bankLabel ?? "Linked bank account"}
+                </span>
+                <span className="block text-sm text-muted-foreground">Connected account</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
+                <RiMoneyDollarCircleLine className="size-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-[#363643]">
+                  ${depositAmount.toLocaleString()}
+                </span>
+                <span className="block text-sm text-muted-foreground">Transfer amount</span>
+              </span>
+            </div>
+          </div>
+          <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
+            Need to change the amount, bank, or timing?{" "}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary underline underline-offset-2">
+              Contact support
+            </a>{" "}
+            — we can edit or cancel it before it&apos;s processed.
+          </p>
+        </div>
+      )}
+
       {/* starting portfolio: saved mix, or the empty state with both ways to build one */}
       {startingPortfolio.length === 0 ? (
         <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
@@ -289,6 +336,135 @@ function WaitCard({
       </span>
       <RiArrowRightSLine className="size-4.5 shrink-0 text-[#b4b5c5] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#575872]" />
     </Link>
+  )
+}
+
+/* ------------------------------ rejected state ------------------------------ */
+
+// Terminal state: Alpaca declined the application. There is no re-submission or
+// re-application path, so everything actionable (uploads, portfolio, browsing)
+// is stripped out — the only route forward is customer support.
+
+const RED = "#B42318"
+
+const REJECTED_STEPS: { title: string; detail: string; state: "done" | "rejected" }[] = [
+  { title: "Application submitted", detail: "Your details and signed agreements were received.", state: "done" },
+  { title: "Identity verification", detail: "Your identity was confirmed.", state: "done" },
+  {
+    title: "Brokerage account approval",
+    detail:
+      "Alpaca Securities, the brokerage partner that reviews and opens Quantbase accounts, was unable to approve your application.",
+    state: "rejected",
+  },
+]
+
+export function ApplicationRejected() {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
+      {/* status header */}
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
+          style={{ color: RED, backgroundColor: `${RED}14` }}
+        >
+          Not approved
+        </span>
+        <h1 className="text-2xl font-semibold tracking-tight text-[#363643]">
+          We couldn&apos;t open your account
+        </h1>
+        <p className="max-w-md text-sm leading-6 text-muted-foreground">
+          This decision was made by our brokerage partner and is final. We&apos;re not able to
+          accept additional documents or a new application.
+        </p>
+      </div>
+
+      {/* how the review ended */}
+      <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
+        <ol className="flex flex-col">
+          {REJECTED_STEPS.map((step, i) => {
+            const last = i === REJECTED_STEPS.length - 1
+            return (
+              <li key={step.title} className="relative flex gap-3.5 pb-6 last:pb-0">
+                {!last && (
+                  <span
+                    aria-hidden
+                    className="absolute top-7 left-[13px] h-[calc(100%-1.9rem)] w-px"
+                    style={{ backgroundColor: "#1d7e4f55" }}
+                  />
+                )}
+                <span
+                  className={cn(
+                    "z-10 flex size-[27px] shrink-0 items-center justify-center rounded-full border border-transparent text-white",
+                    step.state === "done" ? "bg-[#1d7e4f]" : "bg-[#B42318]",
+                  )}
+                >
+                  {step.state === "done" ? <RiCheckLine className="size-4" /> : <RiCloseLine className="size-4" />}
+                </span>
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-sm font-medium text-[#363643]">
+                    {step.title}
+                    {step.state === "rejected" && (
+                      <span className="ml-2 text-xs font-medium" style={{ color: RED }}>
+                        Not approved
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm leading-5 text-muted-foreground">{step.detail}</p>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+        <p className="mt-5 border-t border-[var(--border-secondary)] pt-4 text-xs leading-5 text-muted-foreground">
+          No money was moved. Nothing was invested, and you won&apos;t be charged anything.
+        </p>
+      </div>
+
+      {/* the one path forward: support */}
+      <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
+        <h2 className="text-base font-semibold text-[#363643]">Talk to our support team</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          If you have questions about this decision, our team is here to help and can explain
+          what it means for you.
+        </p>
+        <div className="mt-4 flex flex-col gap-2.5">
+          <SupportRow
+            href={`mailto:${SUPPORT_EMAIL}`}
+            icon={<RiMailLine className="size-4.5" />}
+            title="Email us"
+            body={SUPPORT_EMAIL}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SupportRow({
+  href,
+  icon,
+  title,
+  body,
+}: {
+  href: string
+  icon: React.ReactNode
+  title: string
+  body: string
+}) {
+  return (
+    <a
+      href={href}
+      className="group flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4 transition-all duration-150 hover:border-black/15"
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-[#363643]">{title}</span>
+        <span className="block truncate text-sm leading-5 text-muted-foreground">{body}</span>
+      </span>
+      <RiArrowRightSLine className="size-4.5 shrink-0 text-[#b4b5c5] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#575872]" />
+    </a>
   )
 }
 

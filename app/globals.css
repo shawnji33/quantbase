@@ -48,7 +48,9 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
+/* .force-light re-declares the light tokens on a subtree so light-only
+   surfaces (e.g. onboarding) stay correct when the app is in dark mode. */
+:root, .force-light {
     --background: oklch(1 0 0);
     --foreground: oklch(0.141 0.005 285.823);
     --card: #fdfdfd;

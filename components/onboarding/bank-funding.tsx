@@ -10,8 +10,11 @@ import {
   RiEyeLine,
   RiInformationLine,
   RiLoader4Line,
+  RiFlashlightFill,
   RiLockLine,
+  RiSearchLine,
 } from "@remixicon/react"
+import { usePlaidLink } from "react-plaid-link"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -141,9 +144,154 @@ function ActionRow({
   )
 }
 
-/* ------------------------------- Plaid (mock) ------------------------------- */
+/* ----------------------------- Plaid Link (sandbox) -------------------------- */
+// Real Plaid Link against the sandbox environment. The server mints a
+// link_token (app/api/plaid/create-link-token); Link opens over the dialog;
+// on success we exchange the public_token per the quickstart. With the
+// special sandbox credentials, use a non-OAuth institution such as
+// First Platypus Bank (ins_109508) — https://plaid.com/docs/sandbox/test-credentials/
+// Falls back to a front-end mock when PLAID_CLIENT_ID/PLAID_SECRET are unset.
 
-const INSTITUTIONS = ["Chase", "Bank of America", "Wells Fargo", "Citi", "Capital One", "U.S. Bank"]
+// Plaid's actual sandbox test institutions, so the demo mirrors the real thing.
+const SANDBOX_BANKS = [
+  "First Platypus Bank",
+  "First Gingham Credit Union",
+  "Tattersall Federal Credit Union",
+  "Houndstooth Bank",
+]
+const BANK_DOT = ["#7046E5", "#4E9BE8", "#5FBF8F", "#E8B84E"]
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+// Approximation of the woven Plaid knot mark, for the demo intro pane.
+function PlaidKnot({ color = "#fff", className = "size-6" }: { color?: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+      <g transform="rotate(45 12 12)" stroke={color} strokeWidth={2.4} strokeLinecap="round">
+        <path d="M4 8.5h16M4 15.5h16M8.5 4v16M15.5 4v16" />
+      </g>
+    </svg>
+  )
+}
+
+// Plaid-modal chrome for the demo: wordmark header + 3-segment progress bar.
+function PlaidChrome({ step, children }: { step: 1 | 2 | 3; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-center gap-1.5 pt-1">
+        <PlaidKnot color="#111" className="size-4" />
+        <span className="text-xs font-bold tracking-[2px] text-[#111]">PLAID</span>
+      </div>
+      <div className="flex gap-1.5">
+        {[1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className={cn("h-1 flex-1 rounded-full", i <= step ? "bg-[#00c9e8]" : "bg-black/10")}
+          />
+        ))}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// CSS-styled stand-ins for real institution marks in the demo grid.
+const DEMO_INSTITUTIONS: { name: string; logo: React.ReactNode }[] = [
+  {
+    name: "Chase",
+    logo: <span className="text-sm font-extrabold tracking-[1px] text-[#0f5dba]">CHASE</span>,
+  },
+  {
+    name: "Bank of America",
+    logo: (
+      <span className="text-center text-[10px] leading-tight font-extrabold text-[#e31837]">
+        BANK OF
+        <br />
+        AMERICA
+      </span>
+    ),
+  },
+  {
+    name: "Wells Fargo",
+    logo: (
+      <span className="bg-[#d71e28] px-1.5 py-1 font-serif text-[10px] font-bold tracking-wide text-[#ffcd41]">
+        WELLS FARGO
+      </span>
+    ),
+  },
+  {
+    name: "Citibank",
+    logo: (
+      <span className="text-base text-[#004685]">
+        <span className="font-bold">citi</span>bank
+      </span>
+    ),
+  },
+  {
+    name: "US Bank",
+    logo: (
+      <span className="text-sm font-extrabold italic text-[#0c2074]">
+        usbank<span className="text-[#d9261c]">.</span>
+      </span>
+    ),
+  },
+  {
+    name: "Capital One",
+    logo: (
+      <span className="font-serif text-sm font-semibold italic text-[#004977]">
+        Capital<span className="text-[#d03027]">One</span>
+      </span>
+    ),
+  },
+  {
+    name: "PNC",
+    logo: (
+      <span className="flex items-center gap-1 text-sm font-extrabold text-[#2b2e46]">
+        <span className="text-[10px] text-[#f58025]">▲</span>PNC
+      </span>
+    ),
+  },
+  {
+    name: "USAA",
+    logo: <span className="text-sm font-extrabold tracking-wide text-[#12395b]">USAA</span>,
+  },
+  {
+    name: "American Express",
+    logo: (
+      <span className="bg-[#2e77bc] px-1.5 py-1 text-center text-[7px] leading-tight font-bold text-white">
+        AMERICAN
+        <br />
+        EXPRESS
+      </span>
+    ),
+  },
+  {
+    name: "TD",
+    logo: (
+      <span className="rounded-[4px] bg-[#54b848] px-2 py-1 text-sm font-extrabold text-white">
+        TD
+      </span>
+    ),
+  },
+  {
+    name: "Regions",
+    logo: (
+      <span className="flex items-center gap-1 text-[11px] font-bold tracking-wide text-[#587c1b]">
+        <span className="text-[10px] text-[#7cb342]">▲</span>REGIONS
+      </span>
+    ),
+  },
+  {
+    name: "Navy Federal",
+    logo: (
+      <span className="text-center text-[10px] leading-tight font-extrabold text-[#003366]">
+        NAVY FEDERAL
+        <br />
+        <span className="text-[8px] font-normal text-[#7a8ba6]">Credit Union</span>
+      </span>
+    ),
+  },
+]
 
 function PlaidDialog({
   open,
@@ -154,64 +302,349 @@ function PlaidDialog({
   onOpenChange: (o: boolean) => void
   onLinked: (label: string) => void
 }) {
-  const [stage, setStage] = useState<"pick" | "connecting" | "linked">("pick")
-  const [bank, setBank] = useState<string | null>(null)
+  const [stage, setStage] = useState<
+    "init" | "ready" | "no-keys" | "mock-connecting" | "linked"
+  >("init")
+  const [token, setToken] = useState<string | null>(null)
+  const [label, setLabel] = useState<string | null>(null)
+
+  // Keyless demo — simulates the Link sandbox journey step by step.
+  const [mockStage, setMockStage] = useState<"phone" | "inst" | "creds" | "accounts">("phone")
+  const [mockBank, setMockBank] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
+  const [phone, setPhone] = useState("")
+  const [user, setUser] = useState("")
+  const [pass, setPass] = useState("")
+  const [credError, setCredError] = useState(false)
+  const [account, setAccount] = useState<"checking" | "saving">("checking")
+
+  // Mint a sandbox link_token when the dialog opens.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    fetch("/api/plaid/create-link-token", { method: "POST" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        if (d.link_token) {
+          setToken(d.link_token)
+          setStage("ready")
+        } else {
+          setStage("no-keys")
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStage("no-keys")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  const { open: openLink, ready } = usePlaidLink({
+    token,
+    onSuccess: (publicToken, metadata) => {
+      const inst = metadata.institution?.name ?? "Bank"
+      const acct = metadata.accounts[0]
+      setLabel(
+        acct
+          ? `${inst} ${cap(acct.subtype ?? "account")} •••• ${acct.mask ?? "0000"}`
+          : inst,
+      )
+      setStage("linked")
+      // Complete the quickstart loop; the sandbox access token isn't stored.
+      fetch("/api/plaid/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public_token: publicToken }),
+      }).catch(() => {})
+    },
+  })
 
   // Once linked, continue automatically — no extra button press.
   useEffect(() => {
-    if (stage !== "linked" || !open) return
-    const t = window.setTimeout(() => onLinked(`${bank} Checking •••• 4831`), 1100)
+    if (stage !== "linked" || !open || !label) return
+    const t = window.setTimeout(() => onLinked(label), 1100)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, open])
+  }, [stage, open, label])
 
-  function pick(name: string) {
-    setBank(name)
-    setStage("connecting")
-    window.setTimeout(() => setStage("linked"), 1400)
+  function submitCreds() {
+    // Same rule as the real sandbox: only user_good / pass_good gets through.
+    if (user === "user_good" && pass === "pass_good") {
+      setCredError(false)
+      setMockStage("accounts")
+    } else {
+      setCredError(true)
+    }
+  }
+
+  function confirmAccount() {
+    setLabel(
+      `${mockBank} ${account === "checking" ? "Checking •••• 0000" : "Saving •••• 1111"}`,
+    )
+    setStage("mock-connecting")
+    window.setTimeout(() => setStage("linked"), 1200)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className={cn("sm:max-w-md", stage === "no-keys" && "sm:max-w-[380px]")}>
+        {/* the demo pane carries Plaid's own chrome, so hide our header there */}
+        <DialogHeader className={stage === "no-keys" ? "sr-only" : undefined}>
           <DialogTitle className="flex items-center gap-2">
             <RiLockLine className="size-4 text-muted-foreground" />
             Link with Plaid
           </DialogTitle>
           <DialogDescription>
-            Quantbase uses Plaid to connect your account. This is a front-end mock of the Plaid
-            Link flow.
+            Quantbase uses Plaid to connect your account securely. Running in the Plaid sandbox —
+            no real bank data is involved.
           </DialogDescription>
         </DialogHeader>
 
-        {stage === "pick" && (
-          <div className="grid grid-cols-2 gap-2">
-            {INSTITUTIONS.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => pick(name)}
-                className="rounded-lg border border-[var(--border-secondary)] bg-card px-3 py-3.5 text-sm font-medium text-[#363643] transition-all hover:border-black/15 hover:bg-muted/40"
-              >
-                {name}
-              </button>
-            ))}
+        {stage === "init" && (
+          <div className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
+            <RiLoader4Line className="size-6 animate-spin text-primary" />
+            Preparing Plaid Link…
           </div>
         )}
 
-        {stage === "connecting" && (
+        {stage === "ready" && (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-xl border border-[var(--border-secondary)] bg-muted/50 p-4 text-sm leading-6 text-[#47475d]">
+              <p className="pb-1 font-medium text-[#363643]">Sandbox test login</p>
+              In Plaid Link, choose{" "}
+              <span className="font-medium text-[#363643]">First Platypus Bank</span> and sign in
+              with{" "}
+              <code className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-xs">
+                user_good
+              </code>{" "}
+              /{" "}
+              <code className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-xs">
+                pass_good
+              </code>
+              .
+            </div>
+            <Button size="lg" className="w-full" disabled={!ready} onClick={() => openLink()}>
+              Open Plaid Link
+              <RiArrowRightLine className="size-5" />
+            </Button>
+          </div>
+        )}
+
+        {stage === "no-keys" && (
+          <div className="flex flex-col gap-4">
+            {mockStage === "phone" && (
+              <div className="flex flex-col items-center gap-5 pt-4 text-center">
+                <div className="flex items-center">
+                  <span className="z-10 flex size-12 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#43c6f5] to-[#3d7de0] shadow-sm">
+                    <PlaidKnot />
+                  </span>
+                  <span className="-ml-2 flex size-12 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#4e9be8] to-[#2dd4bf] shadow-sm">
+                    <RiBankLine className="size-6 text-white" />
+                  </span>
+                </div>
+                <p className="max-w-72 text-lg leading-6 font-semibold text-balance text-[#363643]">
+                  Quantbase uses Plaid to connect your account
+                </p>
+                <div className="flex w-full items-center gap-2 rounded-xl border border-[var(--border-secondary)] bg-card px-3.5 shadow-[var(--shadow-card)]">
+                  <span className="text-sm" aria-hidden>
+                    🇺🇸
+                  </span>
+                  <span className="text-sm text-[#575872]">+1</span>
+                  <Input
+                    inputMode="tel"
+                    placeholder="Phone"
+                    aria-label="Phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <p className="flex items-start gap-2 text-left text-xs leading-5 text-muted-foreground">
+                  <RiFlashlightFill className="mt-0.5 size-3.5 shrink-0 text-[#4e9be8]" />
+                  <span>
+                    Use your phone number to log in or sign up with Plaid to go faster next time.{" "}
+                    <span className="underline">Learn more</span>
+                  </span>
+                </p>
+                <p className="pt-2 text-xs leading-5 text-muted-foreground">
+                  <span className="underline">Terms</span> apply. By continuing, you agree to
+                  Plaid&apos;s <span className="underline">Privacy Policy</span> and to receive
+                  updates on plaid.com
+                </p>
+                <Button
+                  size="lg"
+                  className={cn(
+                    "w-full",
+                    phone.length < 10 && "bg-[#6f6f73] text-white hover:bg-[#5f5f63]",
+                  )}
+                  onClick={() => setMockStage("inst")}
+                >
+                  Continue
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setMockStage("inst")}
+                  className="pb-1 text-sm font-semibold text-[#363643]"
+                >
+                  Continue without phone number
+                </button>
+              </div>
+            )}
+
+            {mockStage === "inst" && (
+              <PlaidChrome step={1}>
+                <p className="text-center text-lg font-semibold text-[#111]">
+                  Select your institution
+                </p>
+                <div className="flex items-center gap-2 rounded-lg border border-black/20 px-3">
+                  <RiSearchLine className="size-4 shrink-0 text-[#575872]" />
+                  <Input
+                    placeholder="Search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <div className="-mr-1 grid max-h-[340px] grid-cols-2 gap-3 overflow-y-auto pr-1 pb-1">
+                  {DEMO_INSTITUTIONS.filter((b) =>
+                    b.name.toLowerCase().includes(query.toLowerCase()),
+                  ).map((b) => (
+                    <button
+                      key={b.name}
+                      type="button"
+                      aria-label={b.name}
+                      onClick={() => {
+                        setMockBank(b.name)
+                        setMockStage("creds")
+                      }}
+                      className="flex h-16 items-center justify-center rounded-lg border border-[var(--border-secondary)] bg-white transition-all hover:border-black/25"
+                    >
+                      {b.logo}
+                    </button>
+                  ))}
+                  {/* sandbox test institutions surface via search, like the real thing */}
+                  {query.length > 0 &&
+                    SANDBOX_BANKS.filter((name) =>
+                      name.toLowerCase().includes(query.toLowerCase()),
+                    ).map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => {
+                          setMockBank(name)
+                          setMockStage("creds")
+                        }}
+                        className="col-span-2 flex items-center gap-3 rounded-lg border border-[var(--border-secondary)] bg-white px-3 py-2.5 text-left text-sm font-medium text-[#363643] transition-all hover:border-black/25"
+                      >
+                        <span
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                          style={{
+                            backgroundColor:
+                              BANK_DOT[SANDBOX_BANKS.indexOf(name) % BANK_DOT.length],
+                          }}
+                        >
+                          {name.charAt(0)}
+                        </span>
+                        {name}
+                      </button>
+                    ))}
+                </div>
+              </PlaidChrome>
+            )}
+
+            {mockStage === "creds" && (
+              <PlaidChrome step={2}>
+                <p className="text-center text-lg font-semibold text-[#111]">
+                  Sign in to {mockBank}
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="plaid-user">Username</Label>
+                  <Input
+                    id="plaid-user"
+                    placeholder="user_good"
+                    autoComplete="off"
+                    value={user}
+                    onChange={(e) => setUser(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="plaid-pass">Password</Label>
+                  <Input
+                    id="plaid-pass"
+                    type="password"
+                    placeholder="pass_good"
+                    autoComplete="off"
+                    value={pass}
+                    onChange={(e) => setPass(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitCreds()}
+                  />
+                </div>
+                {credError && (
+                  <p className="text-xs text-[#d92d20]">
+                    Invalid credentials. In the sandbox, use user_good / pass_good.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Test login: user_good / pass_good — same as the real Plaid sandbox.
+                </p>
+                <Button size="lg" className="w-full" onClick={submitCreds}>
+                  Submit
+                </Button>
+              </PlaidChrome>
+            )}
+
+            {mockStage === "accounts" && (
+              <PlaidChrome step={3}>
+                <p className="text-center text-lg font-semibold text-[#111]">
+                  Select an account to link
+                </p>
+                {(
+                  [
+                    ["checking", "Plaid Checking", "•••• 0000", "$110.00"],
+                    ["saving", "Plaid Saving", "•••• 1111", "$210.01"],
+                  ] as const
+                ).map(([id, name, mask, bal]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setAccount(id)}
+                    aria-pressed={account === id}
+                    className={cn(
+                      "flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-all",
+                      account === id
+                        ? "border-primary/60 bg-primary/5"
+                        : "border-[var(--border-secondary)] bg-card hover:border-black/15",
+                    )}
+                  >
+                    <span className="font-medium text-[#363643]">
+                      {name} <span className="font-normal text-muted-foreground">{mask}</span>
+                    </span>
+                    <span className="tabular-nums text-muted-foreground">{bal}</span>
+                  </button>
+                ))}
+                <Button size="lg" className="w-full" onClick={confirmAccount}>
+                  Continue
+                  <RiArrowRightLine className="size-5" />
+                </Button>
+              </PlaidChrome>
+            )}
+          </div>
+        )}
+
+        {stage === "mock-connecting" && (
           <div className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
             <RiLoader4Line className="size-6 animate-spin text-primary" />
-            Connecting to {bank}…
+            Connecting…
           </div>
         )}
 
         {stage === "linked" && (
           <div className="flex flex-col items-center gap-2 py-8 text-center animate-in fade-in zoom-in-95 duration-300">
             <RiCheckboxCircleFill className="size-9 text-[#1d7e4f]" />
-            <p className="text-sm font-medium text-[#363643]">{bank} connected</p>
-            <p className="text-sm text-muted-foreground">Checking •••• 4831 · continuing…</p>
+            <p className="text-sm font-medium text-[#363643]">Bank connected</p>
+            <p className="text-sm text-muted-foreground">{label} · continuing…</p>
           </div>
         )}
       </DialogContent>
