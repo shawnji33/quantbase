@@ -13,9 +13,20 @@ import Link from "next/link"
 import { RiArrowRightSLine, RiBankLine, RiCheckLine, RiCloseLine, RiCompass3Line, RiMailLine, RiMoneyDollarCircleLine, RiQuestionLine, RiSparklingLine, RiStockLine, RiUploadCloud2Line } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { strategies } from "@/lib/strategies"
 import { ALLOC_COLORS } from "@/lib/portfolio"
+import { FUNDING_PRESETS } from "@/lib/onboarding"
+import { LinkedBankRow, PlaidDialog } from "@/components/onboarding/bank-funding"
 import {
   DOCS_KEY,
   formatReceiptTime,
@@ -50,12 +61,16 @@ export function PendingApproval({
   startingPortfolio,
   bankLabel,
   depositAmount,
+  onFunded,
 }: {
   variant: ApprovalVariant
   startingPortfolio: { id: string; weight: number }[]
   bankLabel: string | null
   depositAmount: number | null
+  onFunded: (bankLabel: string, amount: number) => void
 }) {
+  const [fundOpen, setFundOpen] = useState(false)
+
   // Submission receipt from the upload page, so returning users can see their
   // documents were received and when.
   const [receipt, setReceipt] = useState<DocsReceipt | null>(null)
@@ -177,48 +192,9 @@ export function PendingApproval({
         </ol>
       </div>
 
-      {/* pending deposit: on hold until approval, editable/cancelable via support */}
-      {depositAmount !== null && depositAmount > 0 && (
-        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-          <h2 className="text-base font-semibold text-[#363643]">Your pending deposit</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            This transfer is on hold until your account is approved. Nothing moves until then.
-          </p>
-          <div className="mt-4 flex flex-col gap-2.5">
-            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
-                <RiBankLine className="size-4.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-[#363643]">
-                  {bankLabel ?? "Linked bank account"}
-                </span>
-                <span className="block text-sm text-muted-foreground">Connected account</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
-                <RiMoneyDollarCircleLine className="size-4.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-[#363643]">
-                  ${depositAmount.toLocaleString()}
-                </span>
-                <span className="block text-sm text-muted-foreground">Transfer amount</span>
-              </span>
-            </div>
-          </div>
-          <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
-            Need to change the amount, bank, or timing?{" "}
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary underline underline-offset-2">
-              Contact support
-            </a>{" "}
-            — we can edit or cancel it before it&apos;s processed.
-          </p>
-        </div>
-      )}
-
-      {/* starting portfolio: saved mix, or the empty state with both ways to build one */}
+      {/* starting portfolio: saved mix, or the empty state with both ways to build one.
+          Shown before funding — you pick what you're investing in first, then fund it,
+          same order as onboarding itself. */}
       {startingPortfolio.length === 0 ? (
         <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
           <h2 className="text-base font-semibold text-[#363643]">Your starting portfolio</h2>
@@ -261,6 +237,70 @@ export function PendingApproval({
           <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
             Nothing is invested yet. Once you&apos;re approved, you can put this mix to work in one tap.
           </p>
+        </div>
+      )}
+
+      {/* pending deposit: filled card once funded, on hold until approval and
+          editable/cancelable via support. Otherwise, a prompt to connect a bank
+          and fund now so money's ready the moment approval lands. */}
+      {depositAmount !== null && depositAmount > 0 ? (
+        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
+          <h2 className="text-base font-semibold text-[#363643]">Your pending deposit</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            This transfer is on hold until your account is approved. Nothing moves until then.
+          </p>
+          <div className="mt-4 flex flex-col gap-2.5">
+            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
+                <RiBankLine className="size-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-[#363643]">
+                  {bankLabel ?? "Linked bank account"}
+                </span>
+                <span className="block text-sm text-muted-foreground">Connected account</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
+                <RiMoneyDollarCircleLine className="size-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-[#363643]">
+                  ${depositAmount.toLocaleString()}
+                </span>
+                <span className="block text-sm text-muted-foreground">Transfer amount</span>
+              </span>
+            </div>
+          </div>
+          <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
+            Need to change the amount, bank, or timing?{" "}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary underline underline-offset-2">
+              Contact support
+            </a>{" "}
+            — we can edit or cancel it before it&apos;s processed.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
+          <h2 className="text-base font-semibold text-[#363643]">Fund your account</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Connect a bank and deposit now, so your money&apos;s ready to invest the moment
+            you&apos;re approved. Nothing moves until then.
+          </p>
+          <Button className="mt-4" onClick={() => setFundOpen(true)}>
+            <RiBankLine className="size-4" />
+            Connect bank account
+          </Button>
+          <FundAccountDialog
+            key={String(fundOpen)} // remount on each open so it always starts at "connect"
+            open={fundOpen}
+            onOpenChange={setFundOpen}
+            onFunded={(label, amount) => {
+              setFundOpen(false)
+              onFunded(label, amount)
+            }}
+          />
         </div>
       )}
 
@@ -336,6 +376,108 @@ function WaitCard({
       </span>
       <RiArrowRightSLine className="size-4.5 shrink-0 text-[#b4b5c5] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#575872]" />
     </Link>
+  )
+}
+
+/* --------------------------- fund from the dashboard -------------------------- */
+// Two-stage dialog for users who skipped funding during onboarding: connect a
+// bank via the same Plaid flow, then pick an amount. Chained so bank-connect
+// and amount-picking never show at once.
+
+function FundAccountDialog({
+  open,
+  onOpenChange,
+  onFunded,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onFunded: (bankLabel: string, amount: number) => void
+}) {
+  const [stage, setStage] = useState<"connect" | "amount">("connect")
+  const [linkedBank, setLinkedBank] = useState<string | null>(null)
+  const [amount, setAmount] = useState<number | null>(null)
+  const [custom, setCustom] = useState("")
+
+  function pickPreset(v: number) {
+    setAmount(v)
+    setCustom("")
+  }
+
+  function onCustom(raw: string) {
+    const digits = raw.replace(/[^\d]/g, "").slice(0, 7)
+    setCustom(digits)
+    setAmount(digits ? Number(digits) : null)
+  }
+
+  if (stage === "connect") {
+    return (
+      <PlaidDialog
+        key={String(open)} // remount on each open so the mock restarts fresh
+        open={open}
+        onOpenChange={onOpenChange}
+        onLinked={(label) => {
+          setLinkedBank(label)
+          setStage("amount")
+        }}
+      />
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add your first deposit</DialogTitle>
+          <DialogDescription>
+            This transfer won&apos;t move until your account is approved — you can change or
+            cancel it anytime before then.
+          </DialogDescription>
+        </DialogHeader>
+        {linkedBank && <LinkedBankRow label={linkedBank} />}
+        <div className="flex flex-wrap gap-2">
+          {FUNDING_PRESETS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={amount === v && !custom}
+              onClick={() => pickPreset(v)}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-medium tabular-nums transition-all duration-150",
+                amount === v && !custom
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : "border-black/10 bg-white text-[#47475d] hover:bg-[color-mix(in_oklch,white,black_3%)]",
+              )}
+            >
+              ${v.toLocaleString()}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fund-now-amount">Or enter an amount</Label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+              $
+            </span>
+            <Input
+              id="fund-now-amount"
+              inputMode="numeric"
+              placeholder="0"
+              value={custom}
+              onChange={(e) => onCustom(e.target.value)}
+              className="pl-7 tabular-nums"
+            />
+          </div>
+        </div>
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={!amount}
+          onClick={() => linkedBank && amount && onFunded(linkedBank, amount)}
+        >
+          {amount ? `Deposit $${amount.toLocaleString()}` : "Continue"}
+        </Button>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -48,16 +48,29 @@ export function DashboardGate() {
     } catch {
       /* keep fallback */
     }
-    const storedBank = sessionStorage.getItem(BANK_KEY)
-    if (storedBank) setBankLabel(storedBank)
-    const storedFunded = sessionStorage.getItem(FUNDED_KEY)
-    if (storedFunded) setDepositAmount(Number(storedFunded))
+    // Only trust the real bank/deposit state once a genuine onboarding session
+    // exists (STATUS_KEY was set on finish) — that includes a deliberate skip,
+    // which should show the "fund your account" prompt, not the demo deposit.
+    // Without a real session (direct link, ?status= preview), keep the fallback
+    // demo values so the pending-deposit card still previews.
+    if (stored) {
+      setBankLabel(sessionStorage.getItem(BANK_KEY))
+      const storedFunded = sessionStorage.getItem(FUNDED_KEY)
+      setDepositAmount(storedFunded ? Number(storedFunded) : null)
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
   function change(next: Status) {
     setStatus(next)
     sessionStorage.setItem(STATUS_KEY, next)
+  }
+
+  function handleFunded(label: string, amount: number) {
+    setBankLabel(label)
+    setDepositAmount(amount)
+    sessionStorage.setItem(BANK_KEY, label)
+    sessionStorage.setItem(FUNDED_KEY, String(amount))
   }
 
   return (
@@ -70,6 +83,7 @@ export function DashboardGate() {
           startingPortfolio={status === "review-empty" ? [] : starting}
           bankLabel={bankLabel}
           depositAmount={depositAmount}
+          onFunded={handleFunded}
         />
       ) : (
         <>

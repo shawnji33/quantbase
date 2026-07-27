@@ -293,7 +293,7 @@ const DEMO_INSTITUTIONS: { name: string; logo: React.ReactNode }[] = [
   },
 ]
 
-function PlaidDialog({
+export function PlaidDialog({
   open,
   onOpenChange,
   onLinked,
@@ -951,7 +951,7 @@ export function FundingStep({
   )
 }
 
-function LinkedBankRow({ label }: { label: string }) {
+export function LinkedBankRow({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[var(--border-secondary)] bg-card px-4 py-3 shadow-[var(--shadow-card)]">
       <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-[#575872]">
