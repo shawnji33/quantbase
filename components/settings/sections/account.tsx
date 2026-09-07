@@ -18,8 +18,6 @@ import {
   PanelHeader,
   SaveBar,
 } from "@/components/settings/settings-ui"
-import { gateProgress } from "@/lib/account-closure"
-import { useClosure } from "@/components/settings/use-closure"
 
 type Form = {
   firstName: string
@@ -37,7 +35,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function AccountPanel() {
   const { settings, update } = useSettings()
   const { status, run } = useAsyncAction()
-  const { state: closure, ready: closureReady } = useClosure()
 
   const [form, setForm] = useState<Form | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({})
@@ -78,18 +75,6 @@ export function AccountPanel() {
     run(() => update(current))
   }
 
-  const progress = gateProgress(closure)
-  const closureNote =
-    closure.phase === "closed"
-      ? "Your documents stay available here."
-      : closure.phase === "requested"
-        ? "We'll email you when it's done. You can still cancel."
-        : progress.done > 0
-          ? `${progress.done} of ${progress.total} steps done.`
-          : "Withdraw your funds and close your account for good."
-
-  const closureState =
-    closure.phase === "closed" ? "Closed" : closure.phase === "requested" || progress.done > 0 ? "In progress" : null
 
   return (
     <Panel>
@@ -124,21 +109,19 @@ export function AccountPanel() {
       </Card>
 
       <Card>
-        {/* This is navigation, not an action — it opens its own page, so it
-            reads like a row you can follow rather than a button that fires. */}
+        {/* Navigation, not an action: it opens its own page. Deliberately
+            static — the closure flow tracks its own progress, and mirroring
+            that here would turn a signpost into a status widget. */}
         <Link
           href="/settings/close-account"
           className="group flex min-h-11 items-center gap-3 rounded-[16px] px-5 py-4 transition-colors duration-150 ease-out hover:bg-black/[0.02] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-sm font-medium text-[#363643]">Close account</span>
-            <span className="text-xs leading-5 text-muted-foreground">{closureNote}</span>
-          </span>
-          {closureReady && closureState && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              {closureState}
+            <span className="text-xs leading-5 text-muted-foreground">
+              Withdraw your funds and close your account for good.
             </span>
-          )}
+          </span>
           <RiArrowRightSLine className="size-4 shrink-0 text-[#b4b5c5] transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transform-none" />
         </Link>
       </Card>
