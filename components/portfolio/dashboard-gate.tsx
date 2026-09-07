@@ -72,6 +72,19 @@ export function DashboardGate() {
     sessionStorage.setItem(STATUS_KEY, next)
   }
 
+  // ?closure=requested|closed makes the dashboard takeover linkable without
+  // having to walk the checklist first.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("closure")
+    if (wanted !== "requested" && wanted !== "closed") return
+    const now = new Date().toISOString()
+    updateClosure(
+      wanted === "closed"
+        ? { phase: "closed", closedAt: now }
+        : { phase: "requested", requestedAt: now }
+    )
+  }, [updateClosure])
+
   const completeClosure = useCallback(() => {
     updateClosure({ phase: "closed", closedAt: new Date().toISOString() })
   }, [updateClosure])

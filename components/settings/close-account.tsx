@@ -85,6 +85,23 @@ export function CloseAccount() {
     if (window.location.hash.startsWith("#figmacapture")) setCapturing(true)
   }, [])
 
+  // Deep links for review: ?state=<preset> seeds the whole lifecycle, and
+  // ?gates=3 switches to the account that has neither a deposit in flight nor
+  // an auto-investment. Same convention as ?status= on /portfolio. The URL wins
+  // over whatever is in storage, so a link always shows what it promises.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const wanted = params.get("state") as PresetId | null
+    const gates = params.get("gates")
+    if (!wanted && !gates) return
+    if (wanted && !PRESETS.some(([id]) => id === wanted)) return
+    const shape =
+      gates === "3"
+        ? { hasIncomingDeposit: false, hasAutoInvest: false }
+        : { hasIncomingDeposit: true, hasAutoInvest: true }
+    reset(preset(wanted ?? "start", shape))
+  }, [reset])
+
   const complete = useCallback(() => {
     update({ phase: "closed", closedAt: new Date().toISOString() })
   }, [update])

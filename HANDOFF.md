@@ -367,6 +367,23 @@ components/settings/
   account-closed.tsx                       # terminal state
 ```
 
+### Review links
+
+Every point in the closure lifecycle is linkable, so a state can be sent to
+someone rather than described. The URL wins over stored state.
+
+| State | Link |
+|---|---|
+| Nothing started | `/settings/close-account?state=start` |
+| Ready to sell | `/settings/close-account?state=sell` |
+| Trades settling (resolves after ~7s) | `/settings/close-account?state=settling` |
+| All gates cleared | `/settings/close-account?state=ready` |
+| Closure requested (tracker) | `/settings/close-account?state=requested` |
+| Closed (terminal) | `/settings/close-account?state=closed` |
+| Three-gate account | add `&gates=3` to any of the above |
+| Tracker taking over the dashboard | `/portfolio?closure=requested` |
+| Closed state on the dashboard | `/portfolio?closure=closed` |
+
 ### Prototype compressions (change before shipping)
 
 - Settlement resolves after **7s** (`SETTLE_DELAY_MS`) and closure completes after **9s**

@@ -199,7 +199,7 @@ export function gatesFor(state: ClosureState): Gate[] {
     detail:
       snap.unsettledCash === 0
         ? "Everything has settled."
-        : `${usd(snap.unsettledCash)} is settling. Nothing for you to do — we'll email you when it's ready to withdraw, usually the next business day.`,
+        : `${usd(snap.unsettledCash)} is settling. Nothing for you to do. We'll email you when it's ready to withdraw, usually the next business day.`,
     action: null,
     actionLabel: "",
   })
