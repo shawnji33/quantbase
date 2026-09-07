@@ -79,8 +79,9 @@ function RiskDialog({
               onClick={() => setChoice(o.id)}
               aria-pressed={choice === o.id}
               className={cn(
-                "flex flex-col gap-0.5 rounded-[12px] border px-4 py-3 text-left transition-all duration-150",
-                "focus-visible:ring-3 focus-visible:ring-primary/25 focus-visible:outline-none",
+                "flex flex-col gap-0.5 rounded-[12px] border px-4 py-3 text-left",
+                "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
+                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 choice === o.id
                   ? "border-primary/40 bg-primary/[0.06]"
                   : "border-[var(--border-secondary)] bg-card hover:bg-[color-mix(in_oklch,white,black_2%)]"
@@ -180,8 +181,9 @@ function ExperienceDialog({
                     aria-checked={(draft[asset] ?? 0) === level}
                     onClick={() => setDraft({ ...draft, [asset]: level })}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-150",
-                      "focus-visible:ring-3 focus-visible:ring-primary/25 focus-visible:outline-none",
+                      "rounded-full border px-2.5 py-1 text-xs font-medium",
+                      "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
+                      "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                       (draft[asset] ?? 0) === level
                         ? "border-primary/40 bg-primary/10 text-primary"
                         : "border-[var(--border-secondary)] bg-card text-[#47475d] hover:bg-[color-mix(in_oklch,white,black_3%)]"

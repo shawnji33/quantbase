@@ -34,7 +34,7 @@ function DocRow({ doc }: { doc: Doc }) {
       <button
         type="button"
         aria-label={`Download ${doc.name}`}
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+        className="relative flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out before:absolute before:-inset-1 hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <RiDownloadLine className="size-4" />
       </button>
@@ -57,8 +57,9 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150",
-        "focus-visible:ring-3 focus-visible:ring-primary/25 focus-visible:outline-none",
+        "rounded-full border px-3 py-1 text-xs font-medium",
+        "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
+        "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
         active
           ? "border-primary/40 bg-primary/10 text-primary"
           : "border-[var(--border-secondary)] bg-card text-[#47475d] hover:bg-[color-mix(in_oklch,white,black_3%)]"
@@ -89,12 +90,14 @@ export function Pager({
         {Math.min(page * PAGE_SIZE + 1, total)}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}{" "}
         {noun}
       </p>
+      {/* Targets grow vertically only: these sit 8px apart, so padding them
+          outwards on every side would make the two hit areas overlap. */}
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => onPage(page - 1)}
           disabled={page === 0}
-          className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-[#47475d] transition-colors hover:bg-[color-mix(in_oklch,white,black_3%)] focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
+          className="relative rounded-full border border-black/10 bg-white px-3.5 py-2 text-xs font-medium text-[#47475d] transition-colors duration-150 ease-out before:absolute before:inset-x-0 before:-inset-y-1 hover:bg-[color-mix(in_oklch,white,black_3%)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:translate-y-px motion-reduce:transform-none disabled:pointer-events-none disabled:opacity-40"
         >
           Previous
         </button>
@@ -102,7 +105,7 @@ export function Pager({
           type="button"
           onClick={() => onPage(page + 1)}
           disabled={page >= pages - 1}
-          className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-[#47475d] transition-colors hover:bg-[color-mix(in_oklch,white,black_3%)] focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
+          className="relative rounded-full border border-black/10 bg-white px-3.5 py-2 text-xs font-medium text-[#47475d] transition-colors duration-150 ease-out before:absolute before:inset-x-0 before:-inset-y-1 hover:bg-[color-mix(in_oklch,white,black_3%)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:translate-y-px motion-reduce:transform-none disabled:pointer-events-none disabled:opacity-40"
         >
           Next
         </button>
@@ -181,7 +184,7 @@ export function DocumentsPanel() {
             <RowSkeleton rows={PAGE_SIZE} />
           ) : (
             <>
-              <div className="flex flex-col divide-y divide-[var(--border-secondary)]">
+              <div className="flex animate-in flex-col divide-y divide-[var(--border-secondary)] fade-in duration-200 ease-out">
                 {shown.map((d) => (
                   <DocRow key={d.id} doc={d} />
                 ))}

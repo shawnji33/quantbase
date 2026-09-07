@@ -152,7 +152,8 @@ export function CloseAccount() {
                 type="button"
                 onClick={() => jump(id)}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150",
+                  "rounded-full px-3 py-1.5 text-xs font-medium",
+            "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
                   activePreset(state) === id
                     ? "bg-primary text-primary-foreground"
                     : "text-[#47475d] hover:bg-black/5"
@@ -176,7 +177,8 @@ export function CloseAccount() {
                 type="button"
                 onClick={() => setShape(full)}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150",
+                  "rounded-full px-3 py-1.5 text-xs font-medium",
+            "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
                   state.hasIncomingDeposit === full
                     ? "bg-primary text-primary-foreground"
                     : "text-[#47475d] hover:bg-black/5"

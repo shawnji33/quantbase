@@ -121,7 +121,7 @@ export function AccountPanel() {
       <Card>
         <Link
           href="/settings/close-account"
-          className="flex items-center gap-3 rounded-[16px] px-5 py-4 transition-colors hover:bg-black/[0.02] focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+          className="flex items-center gap-3 rounded-[16px] px-5 py-4 transition-colors duration-150 ease-out hover:bg-black/[0.02] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-sm font-medium text-[#363643]">Close account</span>

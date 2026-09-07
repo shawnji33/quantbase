@@ -249,10 +249,11 @@ with different UI shapes.
 
 ### Rules the panels follow
 
-- **Status before detail.** Most visits are to check something, so every nav item
-  carries its own state ("Two-factor off" in amber, "Chase ••••4831" in green)
-  and each panel repeats it as a pill in the header. `sectionStatus` /
-  `sectionTone` in `lib/settings.ts`.
+- **Status before detail.** Each panel states its own state as a pill in the
+  header. The nav carries labels only; a section that *needs attention* (two-factor
+  off, no bank connected) shows a small amber dot with an sr-only "Needs
+  attention". A healthy state is the default and isn't badged. `sectionTone` in
+  `lib/settings.ts`.
 - **Nothing sensitive renders by default.** Account and routing numbers are
   masked until revealed (`RevealValue`). The two-factor secret and QR are
   generated only inside the setup dialog — before that they exist nowhere in
@@ -275,6 +276,24 @@ with different UI shapes.
 Pure CSS at the `md` breakpoint, no JS: `/settings` is the list on narrow
 screens, `/settings/<id>` is the detail with a back arrow. Both panes show side
 by side from 768px up. `h1` is "Settings"; each panel heading is an `h2`.
+
+### Motion and polish
+
+- Focus rings are neutral (`ring-ring/50`), matching `components/ui` — no
+  brand-coloured outlines. The OTP boxes keep the tinted ring already shipped on
+  `/login` so the two verify screens agree.
+- Transitions name their properties (never `transition: all`), run 150ms
+  ease-out, and press feedback is `active:translate-y-px` — the convention
+  `components/ui/button.tsx` already uses.
+- Nav rows are 44px; icon buttons under 40px extend their target with a
+  pseudo-element. The pager grows vertically only, because those two buttons sit
+  8px apart and padding all sides would make their targets overlap.
+- Label weight is constant between selected and unselected nav rows, so
+  selecting one can't reflow the text.
+- `RowSkeleton` mirrors the real row's padding, gap and element sizes, so
+  loading doesn't shift the list; loaded lists fade in over 200ms.
+- Reduced motion is handled globally in `app/globals.css`, plus
+  `motion-reduce:transform-none` on press feedback.
 
 ### Review switcher
 

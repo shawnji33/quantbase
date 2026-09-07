@@ -53,7 +53,8 @@ function ReviewSwitcher() {
           type="button"
           onClick={() => onChange(v)}
           className={cn(
-            "rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150",
+            "rounded-full px-3 py-1.5 text-xs font-medium",
+            "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
             value === v ? "bg-primary text-primary-foreground" : "text-[#47475d] hover:bg-black/5"
           )}
         >

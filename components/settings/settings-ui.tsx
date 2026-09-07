@@ -188,7 +188,7 @@ export function RevealValue({ label, value }: { label: string; value: string }) 
           type="button"
           onClick={() => setShown((v) => !v)}
           aria-label={shown ? `Hide ${label.toLowerCase()}` : `Reveal ${label.toLowerCase()}`}
-          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+          className="relative flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out before:absolute before:-inset-1.5 hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           {shown ? <RiEyeOffLine className="size-4" /> : <RiEyeLine className="size-4" />}
         </button>
@@ -256,17 +256,19 @@ export function Sk({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-md bg-black/[0.06]", className)} />
 }
 
+// Mirrors the real row's box — same padding, gap, and element sizes — so the
+// list doesn't shift when content replaces it.
 export function RowSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="flex flex-col divide-y divide-[var(--border-secondary)]">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-4">
-          <Sk className="size-8 rounded-full" />
+        <div key={i} className="flex items-center gap-3.5 px-5 py-3.5">
+          <Sk className="size-8 shrink-0 rounded-lg" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <Sk className="h-3.5 w-1/2" />
+            <Sk className="h-4 w-1/2" />
             <Sk className="h-3 w-1/3" />
           </div>
-          <Sk className="h-3.5 w-16" />
+          <Sk className="h-4 w-14 shrink-0" />
         </div>
       ))}
     </div>

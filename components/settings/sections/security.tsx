@@ -186,7 +186,7 @@ function MfaSetupDialog({
                       /* clipboard unavailable — the key is selectable */
                     }
                   }}
-                  className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+                  className="relative flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out before:absolute before:-inset-1.5 hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   {copied ? (
                     <RiCheckLine className="size-4 text-[#1d7e4f]" />
@@ -216,7 +216,7 @@ function MfaSetupDialog({
                   autoComplete={i === 0 ? "one-time-code" : "off"}
                   aria-label={`Digit ${i + 1}`}
                   className={cn(
-                    "h-12 w-full rounded-lg border bg-card text-center text-lg font-semibold tabular-nums text-[#363643] shadow-[var(--shadow-card)] outline-none transition-all duration-150",
+                    "h-12 w-full rounded-lg border bg-card text-center text-lg font-semibold tabular-nums text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out",
                     digit ? "border-primary/40" : "border-[var(--border-secondary)]",
                     "focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
                   )}

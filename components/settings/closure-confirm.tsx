@@ -258,7 +258,8 @@ export function ClosureConfirmDialog({
                     type="button"
                     onClick={() => setReason(reason === r ? null : r)}
                     className={cn(
-                      "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
+                      "rounded-full border px-3.5 py-1.5 text-sm font-medium",
+                    "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
                       reason === r
                         ? "border-primary/40 bg-primary/10 text-primary"
                         : "border-[var(--border-secondary)] bg-card text-[#47475d] hover:bg-[color-mix(in_oklch,white,black_3%)]"
@@ -277,7 +278,7 @@ export function ClosureConfirmDialog({
                   rows={3}
                   maxLength={500}
                   placeholder="Tell us what happened, if you want to."
-                  className="w-full resize-none rounded-lg border border-[var(--border-secondary)] bg-card px-3.5 py-2.5 text-sm leading-6 text-[#363643] shadow-[var(--shadow-card)] outline-none transition-all duration-150 placeholder:text-[#b4b5c5] focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
+                  className="w-full resize-none rounded-lg border border-[var(--border-secondary)] bg-card px-3.5 py-2.5 text-sm leading-6 text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out placeholder:text-[#b4b5c5] focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
                 />
               )}
             </div>
@@ -300,7 +301,7 @@ export function ClosureConfirmDialog({
                     autoComplete={i === 0 ? "one-time-code" : "off"}
                     aria-label={`Digit ${i + 1}`}
                     className={cn(
-                      "h-12 w-full rounded-lg border bg-card text-center text-lg font-semibold tabular-nums text-[#363643] shadow-[var(--shadow-card)] outline-none transition-all duration-150",
+                      "h-12 w-full rounded-lg border bg-card text-center text-lg font-semibold tabular-nums text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out",
                       digit ? "border-primary/40" : "border-[var(--border-secondary)]",
                       "focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
                     )}

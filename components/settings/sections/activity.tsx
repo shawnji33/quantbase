@@ -127,8 +127,9 @@ export function ActivityPanel() {
                   setPage(0)
                 }}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150",
-                  "focus-visible:ring-3 focus-visible:ring-primary/25 focus-visible:outline-none",
+                  "rounded-full border px-3 py-1 text-xs font-medium",
+        "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
+                  "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                   range === r.id
                     ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-[var(--border-secondary)] bg-card text-[#47475d] hover:bg-[color-mix(in_oklch,white,black_3%)]"
@@ -152,7 +153,7 @@ export function ActivityPanel() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col divide-y divide-[var(--border-secondary)]">
+              <div className="flex animate-in flex-col divide-y divide-[var(--border-secondary)] fade-in duration-200 ease-out">
                 {shown.map((e) => (
                   <Row key={e.id} event={e} />
                 ))}
