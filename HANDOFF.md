@@ -298,7 +298,8 @@ components/settings/
    account is gone. Built assuming **seven years, read-only, documents only**.
 2. **Residual cash** (trailing dividends, interest, settlements) landing on a zero-balance account.
    Built assuming **Quantbase contacts the user and reimburses to the last linked bank**.
-3. **Can a closed account be reopened?** Built assuming **no — full re-onboarding**.
+3. **Can a closed account be reopened?** Built assuming **no — full re-onboarding**. The closed
+   screen deliberately offers no re-open path; if that policy changes it needs a new entry point.
 
 ---
 

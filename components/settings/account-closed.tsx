@@ -51,19 +51,6 @@ export function AccountClosed({ closedAt }: { closedAt: string | null }) {
         </div>
       </Card>
 
-      <Card className="flex flex-col gap-3 p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-medium text-[#363643]">Want to invest again?</h2>
-          <p className="text-xs leading-5 text-muted-foreground">
-            Your brokerage account is closed for good, so opening a new one means going through
-            signup again. It takes a few minutes.
-          </p>
-        </div>
-        <Button variant="secondary" className="w-fit" asChild>
-          <a href="/onboarding">Open a new account</a>
-        </Button>
-      </Card>
-
       <p className="px-1 text-center text-xs leading-5 text-muted-foreground">
         If any dividends or interest arrive after today, we&apos;ll contact you and send them to
         your last linked bank. Questions?{" "}
