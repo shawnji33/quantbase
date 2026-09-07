@@ -76,7 +76,8 @@ Node 18+ recommended. No environment variables are required (no backend).
 | `/portfolio/[strategyId]` | `app/portfolio/[strategyId]/page.tsx` | Strategy detail: breadcrumb, switcher-as-title, holdings donut, value chart, Buy/Sell. Mock data in `lib/portfolio.ts` |
 | `/verify-documents` | `app/verify-documents/page.tsx` | Identity-verification uploads: per-document drop zones w/ simulated progress, submission receipt persisted (sessionStorage) and surfaced on the dashboard tracker |
 | `/edit-portfolio` | `app/edit-portfolio/page.tsx` | Standalone starting-portfolio editor (save & exit back to the in-review dashboard); `?blank=1` starts empty |
-| `/settings/account` | `app/settings/account/page.tsx` → `components/settings/account-settings.tsx` | Account settings: identity, linked bank, documents, and the entry point to account closure |
+| `/settings` | `app/settings/page.tsx` | Settings index. Narrow screens show the section list; wide screens show the list plus the Account panel |
+| `/settings/[section]` | `app/settings/[section]/page.tsx` → `components/settings/settings-page.tsx` | The six settings sections — `account`, `security`, `banking`, `documents`, `activity`, `preferences`. Each is a prerendered URL; unknown sections 404 |
 | `/settings/close-account` | `app/settings/close-account/page.tsx` → `components/settings/close-account.tsx` | Self-serve account closure — readiness checklist → confirm → closure tracker → closed. Floating "Closure" + "Account" review switchers |
 
 `app/strategies/layout.tsx` provides the fixed app shell (top bar + sidebar; only the
@@ -226,7 +227,72 @@ File: https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase
 
 ---
 
-## 12. Account closure (added 2026-09-07)
+## 12. Settings (added 2026-09-07)
+
+Two-pane: section list on the left, detail on the right. Selection is a real
+route (`/settings/security`), so back/forward and support deep links work.
+
+### Sections
+
+| Section | Shape | Notes |
+|---|---|---|
+| Account | Form | Inline fields, one persistent Save, disabled until dirty. Per-field validation, inline errors. Hosts the Close account entry |
+| Security | Toggles + list | Two-factor, password reset, active sessions |
+| Banking | Record + destructive action | Masked account/routing with reveal, confirmed disconnect |
+| Documents | Tabular | Tax forms always visible; statements filtered by year and paginated |
+| Activity | Tabular | Date-range filter, pagination, status pills only on exceptions |
+| Investing | Summary + edit | Risk tolerance and experience as conclusions, edited in a dialog |
+
+Six sections, not the five originally scoped: Activity is separate from Documents
+because "what happened to my account" and "give me a PDF" are different tasks
+with different UI shapes.
+
+### Rules the panels follow
+
+- **Status before detail.** Most visits are to check something, so every nav item
+  carries its own state ("Two-factor off" in amber, "Chase ••••4831" in green)
+  and each panel repeats it as a pill in the header. `sectionStatus` /
+  `sectionTone` in `lib/settings.ts`.
+- **Nothing sensitive renders by default.** Account and routing numbers are
+  masked until revealed (`RevealValue`). The two-factor secret and QR are
+  generated only inside the setup dialog — before that they exist nowhere in
+  the DOM.
+- **Toggles never flip optimistically.** The two-factor switch shows real state;
+  turning it on opens setup, turning it off opens a confirm. A failed save
+  leaves the switch where it was.
+- **Three states per action.** `useAsyncAction` models working / done / error.
+  Success is transient, errors persist until the next attempt and render inline
+  next to the control, never as a page banner.
+- **Confirm anything high-stakes.** Disconnecting a bank and disabling two-factor
+  both route through `ConfirmDialog`.
+- **Skeletons, not blank space.** Statements and Activity render `RowSkeleton`
+  while loading.
+- **Consistent verbs.** "Save" for forms, "Verify" only for confirmation steps,
+  and specific verbs elsewhere ("Send reset link", "Disconnect", "Download").
+
+### Responsive
+
+Pure CSS at the `md` breakpoint, no JS: `/settings` is the list on narrow
+screens, `/settings/<id>` is the detail with a back arrow. Both panes show side
+by side from 768px up. `h1` is "Settings"; each panel heading is an `h2`.
+
+### Review switcher
+
+Bottom-left, two groups: **Saves** (Succeed / Fail) forces the error state on
+every save; **Data** (Fast / Slow) stretches the fetch so loading skeletons are
+reviewable.
+
+### Prototype notes
+
+- Settings state lives in `sessionStorage` (`qb-settings`) — per tab, so a fresh
+  tab starts from defaults.
+- The two-factor code accepts any 6 digits; the QR is a deterministic
+  placeholder, not a real enrolment code.
+- Download buttons on documents are inert.
+
+---
+
+## 13. Account closure (added 2026-09-07)
 
 Self-serve closure, reached from the header avatar → **Account settings** → **Close account**.
 
@@ -303,7 +369,7 @@ components/settings/
 
 ---
 
-## 13. Onboarding flow — overview & file index
+## 14. Onboarding flow — overview & file index
 
 **Flow:** sign-up (`/login`) → email-code verify → welcome → US-residency gate (non-US → waitlist,
 cannot register) → intent fork (specific strategy / build-me-a-portfolio / build-my-own) →
@@ -341,7 +407,7 @@ agreements + signature → optional "how did you hear" → done.
 
 ---
 
-## 14. Strategy page — file index
+## 15. Strategy page — file index
 
 Every file that makes up the `/strategies` (Explore strategies) page.
 

@@ -12,7 +12,7 @@ import { RiCheckLine, RiMailLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Card, SettingsPage } from "@/components/settings/bits"
+import { Card, ClosurePage } from "@/components/settings/bits"
 import { CancelClosureDialog } from "@/components/settings/closure-actions"
 import { CLOSE_DELAY_MS, formatStamp } from "@/lib/account-closure"
 
@@ -55,7 +55,7 @@ export function ClosureTracker({
   ]
 
   return (
-    <SettingsPage className="max-w-xl py-10">
+    <ClosurePage className="max-w-xl py-10">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
           <span className="relative flex size-2">
@@ -124,6 +124,6 @@ export function ClosureTracker({
       </Card>
 
       <CancelClosureDialog open={cancelOpen} onOpenChange={setCancelOpen} onConfirm={onCancel} />
-    </SettingsPage>
+    </ClosurePage>
   )
 }

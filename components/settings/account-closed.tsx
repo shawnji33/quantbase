@@ -8,7 +8,7 @@
 import { RiCheckLine, RiDownloadLine, RiFileTextLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
-import { Card, SettingsPage } from "@/components/settings/bits"
+import { Card, ClosurePage } from "@/components/settings/bits"
 import { SUPPORT_EMAIL } from "@/lib/account-closure"
 
 export function AccountClosed({ closedAt }: { closedAt: string | null }) {
@@ -21,7 +21,7 @@ export function AccountClosed({ closedAt }: { closedAt: string | null }) {
     : "Today"
 
   return (
-    <SettingsPage className="max-w-xl py-10">
+    <ClosurePage className="max-w-xl py-10">
       <Card className="flex flex-col items-center gap-5 px-6 py-10 text-center">
         <span className="flex size-11 items-center justify-center rounded-full bg-[#1d7e4f]/12 text-[#1d7e4f]">
           <RiCheckLine className="size-5" />
@@ -58,6 +58,6 @@ export function AccountClosed({ closedAt }: { closedAt: string | null }) {
           {SUPPORT_EMAIL}
         </a>
       </p>
-    </SettingsPage>
+    </ClosurePage>
   )
 }

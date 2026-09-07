@@ -13,7 +13,7 @@ import { RiCheckLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BackLink, Card, SettingsPage } from "@/components/settings/bits"
+import { BackLink, Card, ClosurePage } from "@/components/settings/bits"
 import {
   CancelDepositDialog,
   SellAllDialog,
@@ -83,7 +83,7 @@ export function ClosureChecklist({
   }, [state.sold, state.settled, update])
 
   return (
-    <SettingsPage>
+    <ClosurePage>
       <BackLink href="/settings/account" label="Account" />
 
       <div className="flex flex-col gap-2">
@@ -178,6 +178,6 @@ export function ClosureChecklist({
         onOpenChange={(v) => !v && setAction(null)}
         onConfirm={() => update({ autoInvestOff: true })}
       />
-    </SettingsPage>
+    </ClosurePage>
   )
 }
