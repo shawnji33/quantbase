@@ -76,6 +76,8 @@ Node 18+ recommended. No environment variables are required (no backend).
 | `/portfolio/[strategyId]` | `app/portfolio/[strategyId]/page.tsx` | Strategy detail: breadcrumb, switcher-as-title, holdings donut, value chart, Buy/Sell. Mock data in `lib/portfolio.ts` |
 | `/verify-documents` | `app/verify-documents/page.tsx` | Identity-verification uploads: per-document drop zones w/ simulated progress, submission receipt persisted (sessionStorage) and surfaced on the dashboard tracker |
 | `/edit-portfolio` | `app/edit-portfolio/page.tsx` | Standalone starting-portfolio editor (save & exit back to the in-review dashboard); `?blank=1` starts empty |
+| `/settings/account` | `app/settings/account/page.tsx` → `components/settings/account-settings.tsx` | Account settings: identity, linked bank, documents, and the entry point to account closure |
+| `/settings/close-account` | `app/settings/close-account/page.tsx` → `components/settings/close-account.tsx` | Self-serve account closure — readiness checklist → confirm → closure tracker → closed. Floating "Closure" + "Account" review switchers |
 
 `app/strategies/layout.tsx` provides the fixed app shell (top bar + sidebar; only the
 main column scrolls). `app/template.tsx` adds a subtle page-transition fade.
@@ -224,7 +226,83 @@ File: https://www.figma.com/design/ZLwijhAPmSEr7JHXpD6vVd/Quantbase
 
 ---
 
-## 12. Onboarding flow — overview & file index
+## 12. Account closure (added 2026-09-07)
+
+Self-serve closure, reached from the header avatar → **Account settings** → **Close account**.
+
+### The gates are a sequence, not a set
+
+The three prerequisites in the brief can't be evaluated independently, so `lib/account-closure.ts`
+models them as an ordered chain where each gate unlocks the next:
+
+| # | Gate | Blocks because | Conditional? |
+|---|---|---|---|
+| 0 | Cancel incoming deposit | An in-flight ACH lands after the balance hits zero and re-funds a closing account | Yes — only if one is in flight |
+| 1 | Turn off auto-investments | Recurring buys re-enter positions the user just sold | Yes — only if one is live |
+| 2 | Sell your investments | Positions must be liquidated to cash | No |
+| 3 | Wait for trades to settle | Proceeds are unsettled for ~1 business day and can't be withdrawn | No |
+| 4 | Withdraw your cash | Closing with a balance strands the user's money at the broker | No |
+
+Gates 0 and 1 **were not in the original request** — both are genuinely blocking and both are
+reachable in the product today. They render as conditional rows, so the common account sees a clean
+three-step list. The `Account: 5 gates / 3 gates` review switcher toggles between the two shapes.
+
+Only one gate is actionable at a time. Rows below it say *"Available once…"* rather than showing a
+disabled button, and the settlement row explicitly says there is nothing for the user to do — that
+wait is time, not action, and without saying so it reads as a bug.
+
+### Lifecycle
+
+`open` → (all gates cleared) → confirm → `requested` → `closed`, with cancel from `requested` back to
+`open`. Closure **outranks account-approval status** on the dashboard: `dashboard-gate.tsx` renders
+the tracker or the closed state instead of the portfolio. State persists in `sessionStorage` under
+`qb-closure`, because the real flow spans days (T+1 settlement, then 1–3 business days of ACH).
+
+### Quiver acknowledgment
+
+Shown to **everyone** on the confirm step with a **required** checkbox, not just to users we can see
+holding a Quiver strategy — holdings data can't see someone who held one in the past and still pays
+for the subscription. Copy states that the subscription is billed by Quiver, not Quantbase, and
+points at `james@quiverquant.com` (mailto + copy-to-clipboard). The checkbox gates the submit button.
+
+### Files
+
+```
+lib/account-closure.ts                     # lifecycle, snapshot, gate evaluator
+components/app-shell.tsx                   # header + sidebar, extracted from both layouts; avatar menu
+components/settings/
+  bits.tsx                                 # SettingsPage / Card / Row / BackLink
+  use-closure.ts                           # sessionStorage-backed closure state
+  account-settings.tsx                     # /settings/account
+  close-account.tsx                        # orchestrator + review switchers
+  closure-checklist.tsx                    # the gate list
+  closure-actions.tsx                      # sell-all, withdraw-all, cancel-deposit, turn-off-auto, cancel-closure
+  closure-confirm.tsx                      # Quiver ack + reason + email-code
+  closure-tracker.tsx                      # requested state
+  account-closed.tsx                       # terminal state
+```
+
+### Prototype compressions (change before shipping)
+
+- Settlement resolves after **7s** (`SETTLE_DELAY_MS`) and closure completes after **9s**
+  (`CLOSE_DELAY_MS`) so the whole lifecycle is reviewable in one sitting. Real timings are stated in
+  the copy.
+- The email code accepts **any** 6 digits.
+- `Sell` on the strategy detail page and `Transfer` in `AccountPanel` are still inert — those are
+  *partial* sell/transfer flows and there's no partial-position model behind them. Sell-all and
+  withdraw-all (the flows closure actually needs) are real.
+
+### Open policy questions (compliance/ops, not design)
+
+1. **How long does sign-in survive closure?** The 1099-B for the closing year is issued *after* the
+   account is gone. Built assuming **seven years, read-only, documents only**.
+2. **Residual cash** (trailing dividends, interest, settlements) landing on a zero-balance account.
+   Built assuming **Quantbase contacts the user and reimburses to the last linked bank**.
+3. **Can a closed account be reopened?** Built assuming **no — full re-onboarding**.
+
+---
+
+## 13. Onboarding flow — overview & file index
 
 **Flow:** sign-up (`/login`) → email-code verify → welcome → US-residency gate (non-US → waitlist,
 cannot register) → intent fork (specific strategy / build-me-a-portfolio / build-my-own) →
@@ -262,7 +340,7 @@ agreements + signature → optional "how did you hear" → done.
 
 ---
 
-## 13. Strategy page — file index
+## 14. Strategy page — file index
 
 Every file that makes up the `/strategies` (Explore strategies) page.
 

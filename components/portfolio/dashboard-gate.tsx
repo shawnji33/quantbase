@@ -4,15 +4,20 @@
 //   review / action  → approval tracker (no portfolio data — §account gating)
 //   approved         → real dashboard with a dismissible success banner
 //   live             → real dashboard (steady state)
+// A requested/completed account closure outranks all of them — there's no
+// portfolio left to show, so the closure tracker takes the page over.
 // Status is set by finishing onboarding (sessionStorage) and can be flipped
 // with the floating review switcher / ?status= param for design review.
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { recommendPortfolio } from "@/lib/onboarding"
 import { PortfolioOverview } from "@/components/portfolio/overview"
 import { ApplicationRejected, ApprovedBanner, PendingApproval } from "@/components/portfolio/pending-approval"
+import { AccountClosed } from "@/components/settings/account-closed"
+import { ClosureTracker } from "@/components/settings/closure-tracker"
+import { useClosure } from "@/components/settings/use-closure"
 
 type Status = "review" | "review-empty" | "action" | "rejected" | "approved" | "live"
 
@@ -28,6 +33,7 @@ const FALLBACK_BANK_LABEL = "Chase Checking •••• 4831"
 const FALLBACK_DEPOSIT_AMOUNT = 500
 
 export function DashboardGate() {
+  const { state: closure, update: updateClosure, ready: closureReady } = useClosure()
   const [status, setStatus] = useState<Status>("live")
   const [starting, setStarting] = useState<{ id: string; weight: number }[]>(FALLBACK_PORTFOLIO)
   const [bankLabel, setBankLabel] = useState<string | null>(FALLBACK_BANK_LABEL)
@@ -66,11 +72,33 @@ export function DashboardGate() {
     sessionStorage.setItem(STATUS_KEY, next)
   }
 
+  const completeClosure = useCallback(() => {
+    updateClosure({ phase: "closed", closedAt: new Date().toISOString() })
+  }, [updateClosure])
+
+  const cancelClosure = useCallback(() => {
+    updateClosure({ phase: "open", requestedAt: null })
+  }, [updateClosure])
+
   function handleFunded(label: string, amount: number) {
     setBankLabel(label)
     setDepositAmount(amount)
     sessionStorage.setItem(BANK_KEY, label)
     sessionStorage.setItem(FUNDED_KEY, String(amount))
+  }
+
+  // Closure outranks approval status: a closing account has no portfolio.
+  if (closureReady && closure.phase === "closed") {
+    return <AccountClosed closedAt={closure.closedAt} />
+  }
+  if (closureReady && closure.phase === "requested") {
+    return (
+      <ClosureTracker
+        requestedAt={closure.requestedAt}
+        onCancel={cancelClosure}
+        onComplete={completeClosure}
+      />
+    )
   }
 
   return (
