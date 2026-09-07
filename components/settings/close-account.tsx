@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { useClosure } from "@/components/settings/use-closure"
 import { ClosureChecklist } from "@/components/settings/closure-checklist"
-import { ClosureConfirm } from "@/components/settings/closure-confirm"
+import { ClosureConfirmDialog } from "@/components/settings/closure-confirm"
 import { ClosureTracker } from "@/components/settings/closure-tracker"
 import { AccountClosed } from "@/components/settings/account-closed"
 import { INITIAL_CLOSURE, type ClosureState } from "@/lib/account-closure"
@@ -76,7 +76,7 @@ function activePreset(s: ClosureState): PresetId {
 
 export function CloseAccount() {
   const { state, update, reset, ready } = useClosure()
-  const [step, setStep] = useState<"checklist" | "confirm">("checklist")
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [capturing, setCapturing] = useState(false)
 
   useEffect(() => {
@@ -90,8 +90,8 @@ export function CloseAccount() {
   }, [update])
 
   function confirm(reason: string | null) {
+    setConfirmOpen(false)
     update({ phase: "requested", requestedAt: new Date().toISOString(), reason })
-    setStep("checklist")
   }
 
   // Cancelling restores the account but not the portfolio — the gates stay
@@ -102,7 +102,7 @@ export function CloseAccount() {
 
   function jump(id: PresetId) {
     reset(preset(id, { hasIncomingDeposit: state.hasIncomingDeposit, hasAutoInvest: state.hasAutoInvest }))
-    setStep("checklist")
+    setConfirmOpen(false)
   }
 
   // Switches between the account that has everything (5 gates) and the common
@@ -111,7 +111,7 @@ export function CloseAccount() {
     reset(
       preset(activePreset(state), { hasIncomingDeposit: full, hasAutoInvest: full })
     )
-    setStep("checklist")
+    setConfirmOpen(false)
   }
 
   return (
@@ -125,14 +125,19 @@ export function CloseAccount() {
           onCancel={cancelClosure}
           onComplete={complete}
         />
-      ) : step === "confirm" ? (
-        <ClosureConfirm onBack={() => setStep("checklist")} onConfirm={confirm} />
       ) : (
-        <ClosureChecklist
-          state={state}
-          update={update}
-          onContinue={() => setStep("confirm")}
-        />
+        <>
+          <ClosureChecklist
+            state={state}
+            update={update}
+            onContinue={() => setConfirmOpen(true)}
+          />
+          <ClosureConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            onConfirm={confirm}
+          />
+        </>
       )}
 
       {/* design-review only: jump to any point in the closure lifecycle, and
