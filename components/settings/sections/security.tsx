@@ -36,6 +36,7 @@ import {
   PanelHeader,
   StatusPill,
 } from "@/components/settings/settings-ui"
+import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 // Only generated when setup is actually running.
 const MFA_SECRET = "JBSW Y3DP EHPK 3PXP"
@@ -101,12 +102,14 @@ function MfaSetupDialog({
   open,
   onOpenChange,
   onEnabled,
+  initialStep = "scan",
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   onEnabled: () => void
+  initialStep?: "scan" | "verify"
 }) {
-  const [step, setStep] = useState<"scan" | "verify">("scan")
+  const [step, setStep] = useState<"scan" | "verify">(initialStep)
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""))
   const [copied, setCopied] = useState(false)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
@@ -117,12 +120,12 @@ function MfaSetupDialog({
   useEffect(() => {
     if (open) return
     /* eslint-disable react-hooks/set-state-in-effect -- reset on close */
-    setStep("scan")
+    setStep(initialStep)
     setCode(Array(CODE_LENGTH).fill(""))
     setCopied(false)
     reset()
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, reset])
+  }, [open, reset, initialStep])
 
   useEffect(() => {
     if (step !== "verify") return
@@ -285,6 +288,15 @@ export function SecurityPanel() {
 
   const disable = useAsyncAction()
   const reset = useAsyncAction()
+  const dialogParam = useDialogParam()
+
+  // ?dialog=mfa-setup|mfa-verify|mfa-disable
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time deep link */
+    if (dialogParam === "mfa-setup" || dialogParam === "mfa-verify") setSetupOpen(true)
+    if (dialogParam === "mfa-disable") setDisableOpen(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [dialogParam])
 
   const mfa = settings.mfaEnabled
 
@@ -421,6 +433,7 @@ export function SecurityPanel() {
         open={setupOpen}
         onOpenChange={setSetupOpen}
         onEnabled={() => update({ mfaEnabled: true })}
+        initialStep={dialogParam === "mfa-verify" ? "verify" : "scan"}
       />
 
       <ConfirmDialog

@@ -4,7 +4,7 @@
 // them — they're on screen during screen-shares and support calls, and nothing
 // here needs them legible by default. Disconnecting is confirmed, never silent.
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { RiBankLine, RiLinkUnlinkM } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
@@ -19,11 +19,19 @@ import {
   RevealValue,
   StatusPill,
 } from "@/components/settings/settings-ui"
+import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 export function BankingPanel() {
   const { settings, update } = useSettings()
   const { status, run, reset } = useAsyncAction()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const dialogParam = useDialogParam()
+
+  useEffect(() => {
+    if (dialogParam !== "disconnect-bank") return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
+    setConfirmOpen(true)
+  }, [dialogParam])
 
   const connected = settings.bankConnected
 

@@ -51,12 +51,15 @@ export function ClosureConfirmDialog({
   open,
   onOpenChange,
   onConfirm,
+  initialStep = "quiver",
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   onConfirm: (reason: string | null) => void
+  // Review deep links can drop straight onto a later step.
+  initialStep?: Step
 }) {
-  const [step, setStep] = useState<Step>("quiver")
+  const [step, setStep] = useState<Step>(initialStep)
   const [dir, setDir] = useState<1 | -1>(1)
   const [ack, setAck] = useState(false)
   const [reason, setReason] = useState<string | null>(null)
@@ -80,7 +83,7 @@ export function ClosureConfirmDialog({
   useEffect(() => {
     if (open) return
     /* eslint-disable react-hooks/set-state-in-effect -- reset on close */
-    setStep("quiver")
+    setStep(initialStep)
     setDir(1)
     setAck(false)
     setReason(null)
@@ -89,7 +92,7 @@ export function ClosureConfirmDialog({
     setCooldown(RESEND_COOLDOWN)
     setBusy(false)
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open])
+  }, [open, initialStep])
 
   useEffect(() => {
     if (step !== "verify" || cooldown <= 0) return

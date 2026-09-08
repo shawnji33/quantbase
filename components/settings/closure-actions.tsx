@@ -234,8 +234,7 @@ export function CancelDepositDialog({
         <DialogHeader>
           <DialogTitle>Cancel this deposit?</DialogTitle>
           <DialogDescription>
-            {usd(INCOMING_DEPOSIT.amount)} from {INCOMING_DEPOSIT.from} is on its way in. We&apos;ll
-            stop it before it lands, and the money stays in your bank.
+            {`${usd(INCOMING_DEPOSIT.amount)} from ${INCOMING_DEPOSIT.from} is on its way in. We'll stop it before it lands, and the money stays in your bank.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -274,8 +273,7 @@ export function TurnOffAutoDialog({
         <DialogHeader>
           <DialogTitle>Turn off auto-investments?</DialogTitle>
           <DialogDescription>
-            Your {usd(AUTO_INVEST.amount)} {AUTO_INVEST.cadence} investment stops. Without this,
-            we&apos;d buy back into strategies right after you sell them.
+            {`Your ${usd(AUTO_INVEST.amount)} ${AUTO_INVEST.cadence} investment stops. Without this, we'd buy back into strategies right after you sell them.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

@@ -11,6 +11,8 @@
 import { useEffect, useState } from "react"
 import { RiCheckLine } from "@remixicon/react"
 
+import { useDialogParam } from "@/components/settings/use-dialog-param"
+
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BackLink, Card, ClosurePage } from "@/components/settings/bits"
@@ -67,6 +69,15 @@ export function ClosureChecklist({
   onContinue: () => void
 }) {
   const [action, setAction] = useState<GateAction | null>(null)
+  const dialogParam = useDialogParam()
+
+  // ?dialog=sell|withdraw|cancel-deposit|turn-off-auto opens that gate's modal.
+  useEffect(() => {
+    const allowed: GateAction[] = ["sell", "withdraw", "cancel-deposit", "turn-off-auto"]
+    if (!dialogParam || !allowed.includes(dialogParam as GateAction)) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
+    setAction(dialogParam as GateAction)
+  }, [dialogParam])
 
   const gates = gatesFor(state)
   const snap = snapshot(state)

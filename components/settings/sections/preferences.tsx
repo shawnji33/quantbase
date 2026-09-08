@@ -36,6 +36,7 @@ import {
   Panel,
   PanelHeader,
 } from "@/components/settings/settings-ui"
+import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 /* ------------------------------- risk dialog ------------------------------- */
 
@@ -276,6 +277,15 @@ export function PreferencesPanel() {
   const { settings, update } = useSettings()
   const [riskOpen, setRiskOpen] = useState(false)
   const [expOpen, setExpOpen] = useState(false)
+  const dialogParam = useDialogParam()
+
+  // ?dialog=risk|experience
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time deep link */
+    if (dialogParam === "risk") setRiskOpen(true)
+    if (dialogParam === "experience") setExpOpen(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [dialogParam])
 
   const profile = RISK_PROFILE[settings.risk]
   const known = ASSET_TYPES.filter((a) => (settings.experience[a] ?? 0) > 0)

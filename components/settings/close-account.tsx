@@ -14,6 +14,7 @@ import { ClosureConfirmDialog } from "@/components/settings/closure-confirm"
 import { ClosureTracker } from "@/components/settings/closure-tracker"
 import { AccountClosed } from "@/components/settings/account-closed"
 import { INITIAL_CLOSURE, type ClosureState } from "@/lib/account-closure"
+import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 /* ----------------------------- review switcher ----------------------------- */
 // Same affordance as the dashboard's "Account" switcher: the closure story
@@ -31,6 +32,7 @@ const PRESETS = [
   ["start", "Start"],
   ["sell", "Sell"],
   ["settling", "Settling"],
+  ["settled", "Withdraw"],
   ["ready", "Ready"],
   ["requested", "Requested"],
   ["closed", "Closed"],
@@ -52,6 +54,17 @@ function preset(id: PresetId, shape: Shape): ClosureState {
       return { ...base, depositCancelled: true, autoInvestOff: true }
     case "settling":
       return { ...base, depositCancelled: true, autoInvestOff: true, sold: true }
+    // Settled but not yet withdrawn — the state where "Withdraw your cash" is
+    // the live gate. Without it the lifecycle jumps straight from settling to
+    // everything-done.
+    case "settled":
+      return {
+        ...base,
+        depositCancelled: true,
+        autoInvestOff: true,
+        sold: true,
+        settled: true,
+      }
     case "ready":
       return { ...base, ...ALL_CLEAR }
     case "requested":
@@ -67,6 +80,7 @@ function activePreset(s: ClosureState): PresetId {
   if (s.phase === "closed") return "closed"
   if (s.phase === "requested") return "requested"
   if (s.withdrawn) return "ready"
+  if (s.sold && s.settled) return "settled"
   if (s.sold && !s.settled) return "settling"
   if (s.depositCancelled || s.autoInvestOff) return "sell"
   return "start"
@@ -78,6 +92,22 @@ export function CloseAccount() {
   const { state, update, reset, ready } = useClosure()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [capturing, setCapturing] = useState(false)
+  const dialogParam = useDialogParam()
+
+  // ?dialog=confirm|confirm-reason|confirm-verify opens the three-step modal
+  // on the matching step.
+  const confirmStep =
+    dialogParam === "confirm-reason"
+      ? ("reason" as const)
+      : dialogParam === "confirm-verify"
+        ? ("verify" as const)
+        : ("quiver" as const)
+
+  useEffect(() => {
+    if (!dialogParam?.startsWith("confirm")) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
+    setConfirmOpen(true)
+  }, [dialogParam])
 
   useEffect(() => {
     // Hide the review switcher while Figma's html-to-design capture runs.
@@ -153,6 +183,7 @@ export function CloseAccount() {
             open={confirmOpen}
             onOpenChange={setConfirmOpen}
             onConfirm={confirm}
+            initialStep={confirmStep}
           />
         </>
       )}

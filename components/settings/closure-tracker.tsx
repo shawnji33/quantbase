@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { Card, ClosurePage } from "@/components/settings/bits"
 import { CancelClosureDialog } from "@/components/settings/closure-actions"
 import { CLOSE_DELAY_MS, formatStamp } from "@/lib/account-closure"
+import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 type StepState = "done" | "current" | "todo"
 
@@ -28,6 +29,13 @@ export function ClosureTracker({
   onComplete: () => void
 }) {
   const [cancelOpen, setCancelOpen] = useState(false)
+  const dialogParam = useDialogParam()
+
+  useEffect(() => {
+    if (dialogParam !== "cancel-closure") return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
+    setCancelOpen(true)
+  }, [dialogParam])
 
   // The prototype compresses the real 1–3 business day wait so the terminal
   // state is reachable in review. The copy still states the real timing.
