@@ -1,11 +1,14 @@
 "use client"
 
-// Closure requested. Takes over the dashboard the way PendingApproval does, and
-// borrows the same step/status grammar so nothing new gets invented.
+// Closure requested — the status page for a closure our support team is running.
 //
-// The cancel copy is deliberately honest that cancelling restores the account
-// but not the portfolio — the investments are already sold. Implying a rollback
-// we can't perform is how this becomes a support escalation.
+// The user has handed off a real amount of money, so this screen's job is to
+// say who has it, where it's going, and when it lands. It borrows the step and
+// status grammar from the approval tracker so nothing new gets invented.
+//
+// Unlike the first build, nothing has been sold at the moment this appears. The
+// cancel copy says so rather than implying a rollback we may not be able to
+// perform once the desk has started.
 
 import { useEffect, useState } from "react"
 import { RiCheckLine, RiMailLine } from "@remixicon/react"
@@ -14,22 +17,30 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Card, ClosurePage } from "@/components/settings/bits"
 import { CancelClosureDialog } from "@/components/settings/closure-actions"
-import { CLOSE_DELAY_MS, formatStamp } from "@/lib/account-closure"
+import { usd } from "@/lib/portfolio"
+import {
+  CLOSE_DELAY_MS,
+  CLOSURE_ETA,
+  formatStamp,
+  snapshot,
+  type ClosureState,
+} from "@/lib/account-closure"
 import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 type StepState = "done" | "current" | "todo"
 
 export function ClosureTracker({
-  requestedAt,
+  state,
   onCancel,
   onComplete,
 }: {
-  requestedAt: string | null
+  state: ClosureState
   onCancel: () => void
   onComplete: () => void
 }) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const dialogParam = useDialogParam()
+  const snap = snapshot(state)
 
   useEffect(() => {
     if (dialogParam !== "cancel-closure") return
@@ -37,8 +48,8 @@ export function ClosureTracker({
     setCancelOpen(true)
   }, [dialogParam])
 
-  // The prototype compresses the real 1–3 business day wait so the terminal
-  // state is reachable in review. The copy still states the real timing.
+  // The prototype compresses the real multi-day wait so the terminal state is
+  // reachable in review. The copy still states the real timing.
   useEffect(() => {
     const t = window.setTimeout(onComplete, CLOSE_DELAY_MS)
     return () => window.clearTimeout(t)
@@ -46,18 +57,20 @@ export function ClosureTracker({
 
   const steps: { title: string; detail: string; state: StepState }[] = [
     {
-      title: "Closure requested",
-      detail: formatStamp(requestedAt) || "Just now",
+      title: "Request received",
+      detail: formatStamp(state.requestedAt) || "Just now",
       state: "done",
     },
     {
-      title: "Final review",
-      detail: "We're confirming your balance is settled and closing your brokerage account.",
+      title: "We're closing out your investments",
+      detail: snap.payoutBank
+        ? `Our team is selling your ${snap.positionCount} strategies and sending the money to ${snap.payoutBank}.`
+        : `Our team is selling your ${snap.positionCount} strategies and sending the money to your linked bank.`,
       state: "current",
     },
     {
       title: "Account closed",
-      detail: "Usually within 1 to 3 business days.",
+      detail: `Usually within ${CLOSURE_ETA} from your request.`,
       state: "todo",
     },
   ]
@@ -77,7 +90,7 @@ export function ClosureTracker({
         </h1>
         <p className="flex max-w-md items-center gap-2 text-sm leading-6 text-muted-foreground">
           <RiMailLine className="size-4 shrink-0" />
-          We&apos;ll email you the moment it&apos;s done.
+          We&apos;ll email you when your money is on its way, and again when it&apos;s done.
         </p>
       </div>
 
@@ -118,12 +131,24 @@ export function ClosureTracker({
         </div>
       </Card>
 
+      {/* The balance is still invested and still visible on the dashboard, so
+          naming the amount here keeps the two surfaces telling one story. */}
+      <Card className="flex items-baseline justify-between gap-4 p-5">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-medium text-[#363643]">Closing out</p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {snap.positionCount} strategies plus {usd(snap.cash)} in cash
+          </p>
+        </div>
+        <p className="text-base font-medium tabular-nums text-[#363643]">{usd(snap.total)}</p>
+      </Card>
+
       <Card className="flex flex-col gap-3 p-5">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium text-[#363643]">Changed your mind?</h2>
           <p className="text-xs leading-5 text-muted-foreground">
-            Cancel and your account stays open. Your investments are already sold, so you&apos;d be
-            starting from cash.
+            Cancel and your account stays open. Nothing has been sold yet, though if we&apos;ve
+            already started you may end up holding cash instead of strategies.
           </p>
         </div>
         <Button variant="secondary" className="w-fit" onClick={() => setCancelOpen(true)}>

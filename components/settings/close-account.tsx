@@ -1,19 +1,24 @@
 "use client"
 
 // Orchestrates the whole closure story on one route, because it is one story
-// spread across days: checklist → confirm → requested → closed. Which screen
+// spread across days: request → confirm → requested → closed. Which screen
 // shows is derived from persisted state, not from navigation, so a user who
-// leaves mid-checklist and comes back tomorrow lands exactly where they were.
+// leaves mid-request and comes back tomorrow lands exactly where they were.
 
 import { useCallback, useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { useClosure } from "@/components/settings/use-closure"
-import { ClosureChecklist } from "@/components/settings/closure-checklist"
+import { ClosureRequest } from "@/components/settings/closure-request"
 import { ClosureConfirmDialog } from "@/components/settings/closure-confirm"
 import { ClosureTracker } from "@/components/settings/closure-tracker"
 import { AccountClosed } from "@/components/settings/account-closed"
-import { INITIAL_CLOSURE, type ClosureState } from "@/lib/account-closure"
+import {
+  INITIAL_CLOSURE,
+  LINKED_BANK,
+  canClose,
+  type ClosureState,
+} from "@/lib/account-closure"
 import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 /* ----------------------------- review switcher ----------------------------- */
@@ -23,16 +28,11 @@ import { useDialogParam } from "@/components/settings/use-dialog-param"
 const ALL_CLEAR = {
   depositCancelled: true,
   autoInvestOff: true,
-  sold: true,
-  settled: true,
-  withdrawn: true,
+  bankLabel: LINKED_BANK,
 }
 
 const PRESETS = [
   ["start", "Start"],
-  ["sell", "Sell"],
-  ["settling", "Settling"],
-  ["settled", "Withdraw"],
   ["ready", "Ready"],
   ["requested", "Requested"],
   ["closed", "Closed"],
@@ -40,31 +40,28 @@ const PRESETS = [
 
 type PresetId = (typeof PRESETS)[number][0]
 
-// Account shape carries across preset jumps, so the reviewer can walk the whole
-// lifecycle in either the 5-gate or the 3-gate variant.
-type Shape = Pick<ClosureState, "hasIncomingDeposit" | "hasAutoInvest">
+// Which prerequisites this account has at all. Kept separate from lifecycle
+// position so a reviewer can walk any shape through any state.
+const SHAPES = {
+  full: { hasIncomingDeposit: true, hasAutoInvest: true, hasLinkedBank: true },
+  clean: { hasIncomingDeposit: false, hasAutoInvest: false, hasLinkedBank: true },
+  "no-bank": { hasIncomingDeposit: false, hasAutoInvest: false, hasLinkedBank: false },
+} as const
 
-function preset(id: PresetId, shape: Shape): ClosureState {
+type ShapeId = keyof typeof SHAPES
+
+const SHAPE_LABELS: [ShapeId, string][] = [
+  ["full", "Deposit + auto"],
+  ["clean", "Nothing to do"],
+  ["no-bank", "No bank"],
+]
+
+function preset(id: PresetId, shape: ShapeId): ClosureState {
   const now = new Date().toISOString()
-  const base = { ...INITIAL_CLOSURE, ...shape }
+  const base = { ...INITIAL_CLOSURE, ...SHAPES[shape] }
   switch (id) {
     case "start":
       return base
-    case "sell":
-      return { ...base, depositCancelled: true, autoInvestOff: true }
-    case "settling":
-      return { ...base, depositCancelled: true, autoInvestOff: true, sold: true }
-    // Settled but not yet withdrawn — the state where "Withdraw your cash" is
-    // the live gate. Without it the lifecycle jumps straight from settling to
-    // everything-done.
-    case "settled":
-      return {
-        ...base,
-        depositCancelled: true,
-        autoInvestOff: true,
-        sold: true,
-        settled: true,
-      }
     case "ready":
       return { ...base, ...ALL_CLEAR }
     case "requested":
@@ -79,11 +76,12 @@ function preset(id: PresetId, shape: Shape): ClosureState {
 function activePreset(s: ClosureState): PresetId {
   if (s.phase === "closed") return "closed"
   if (s.phase === "requested") return "requested"
-  if (s.withdrawn) return "ready"
-  if (s.sold && s.settled) return "settled"
-  if (s.sold && !s.settled) return "settling"
-  if (s.depositCancelled || s.autoInvestOff) return "sell"
-  return "start"
+  return canClose(s) ? "ready" : "start"
+}
+
+function activeShape(s: ClosureState): ShapeId {
+  if (!s.hasLinkedBank) return "no-bank"
+  return s.hasIncomingDeposit || s.hasAutoInvest ? "full" : "clean"
 }
 
 /* -------------------------------- component -------------------------------- */
@@ -94,14 +92,8 @@ export function CloseAccount() {
   const [capturing, setCapturing] = useState(false)
   const dialogParam = useDialogParam()
 
-  // ?dialog=confirm|confirm-reason|confirm-verify opens the three-step modal
-  // on the matching step.
-  const confirmStep =
-    dialogParam === "confirm-reason"
-      ? ("reason" as const)
-      : dialogParam === "confirm-verify"
-        ? ("verify" as const)
-        : ("quiver" as const)
+  // ?dialog=confirm|confirm-reason opens the two-step modal on that step.
+  const confirmStep = dialogParam === "confirm-reason" ? ("reason" as const) : ("quiver" as const)
 
   useEffect(() => {
     if (!dialogParam?.startsWith("confirm")) return
@@ -115,20 +107,19 @@ export function CloseAccount() {
     if (window.location.hash.startsWith("#figmacapture")) setCapturing(true)
   }, [])
 
-  // Deep links for review: ?state=<preset> seeds the whole lifecycle, and
-  // ?gates=3 switches to the account that has neither a deposit in flight nor
-  // an auto-investment. Same convention as ?status= on /portfolio. The URL wins
-  // over whatever is in storage, so a link always shows what it promises.
+  // Deep links for review: ?state=<preset> seeds the lifecycle and
+  // ?account=full|clean|no-bank picks which prerequisites exist. Same convention
+  // as ?status= on /portfolio. The URL wins over whatever is in storage, so a
+  // link always shows what it promises. `?gates=3` is the old spelling of
+  // `?account=clean`, kept working because those links are already circulating.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const wanted = params.get("state") as PresetId | null
-    const gates = params.get("gates")
-    if (!wanted && !gates) return
+    const account = params.get("account") as ShapeId | null
+    const legacy = params.get("gates") === "3" ? ("clean" as const) : null
+    if (!wanted && !account && !legacy) return
     if (wanted && !PRESETS.some(([id]) => id === wanted)) return
-    const shape =
-      gates === "3"
-        ? { hasIncomingDeposit: false, hasAutoInvest: false }
-        : { hasIncomingDeposit: true, hasAutoInvest: true }
+    const shape = account && account in SHAPES ? account : (legacy ?? "full")
     reset(preset(wanted ?? "start", shape))
   }, [reset])
 
@@ -141,23 +132,21 @@ export function CloseAccount() {
     update({ phase: "requested", requestedAt: new Date().toISOString(), reason })
   }
 
-  // Cancelling restores the account but not the portfolio — the gates stay
-  // cleared, which is exactly what the cancel copy promises.
+  // Cancelling restores the account. Nothing the user did on the request screen
+  // is undone — their deposit stays cancelled and auto-invest stays off, which
+  // is both true and the only thing we could honestly promise.
   function cancelClosure() {
     update({ phase: "open", requestedAt: null })
   }
 
   function jump(id: PresetId) {
-    reset(preset(id, { hasIncomingDeposit: state.hasIncomingDeposit, hasAutoInvest: state.hasAutoInvest }))
+    reset(preset(id, activeShape(state)))
     setConfirmOpen(false)
   }
 
-  // Switches between the account that has everything (5 gates) and the common
-  // case with neither a deposit in flight nor an auto-investment (3 gates).
-  function setShape(full: boolean) {
-    reset(
-      preset(activePreset(state), { hasIncomingDeposit: full, hasAutoInvest: full })
-    )
+  // Switches which prerequisites the account has, holding the lifecycle position.
+  function setShape(shape: ShapeId) {
+    reset(preset(activePreset(state), shape))
     setConfirmOpen(false)
   }
 
@@ -167,14 +156,10 @@ export function CloseAccount() {
       {!ready ? null : state.phase === "closed" ? (
         <AccountClosed closedAt={state.closedAt} />
       ) : state.phase === "requested" ? (
-        <ClosureTracker
-          requestedAt={state.requestedAt}
-          onCancel={cancelClosure}
-          onComplete={complete}
-        />
+        <ClosureTracker state={state} onCancel={cancelClosure} onComplete={complete} />
       ) : (
         <>
-          <ClosureChecklist
+          <ClosureRequest
             state={state}
             update={update}
             onContinue={() => setConfirmOpen(true)}
@@ -189,7 +174,7 @@ export function CloseAccount() {
       )}
 
       {/* design-review only: jump to any point in the closure lifecycle, and
-          switch between the 5-gate and 3-gate account shapes */}
+          switch which prerequisites the account has */}
       {ready && !capturing && (
         <div className="fixed bottom-4 left-4 z-50 flex flex-wrap items-center gap-2">
           <div className="glass flex items-center gap-1 rounded-full border p-1 shadow-[var(--shadow-card)]">
@@ -214,20 +199,15 @@ export function CloseAccount() {
 
           <div className="glass flex items-center gap-1 rounded-full border p-1 shadow-[var(--shadow-card)]">
             <span className="px-2.5 text-xs font-medium text-muted-foreground">Account</span>
-            {(
-              [
-                [true, "5 gates"],
-                [false, "3 gates"],
-              ] as const
-            ).map(([full, label]) => (
+            {SHAPE_LABELS.map(([id, label]) => (
               <button
-                key={label}
+                key={id}
                 type="button"
-                onClick={() => setShape(full)}
+                onClick={() => setShape(id)}
                 className={cn(
                   "rounded-full px-3 py-1.5 text-xs font-medium",
             "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
-                  state.hasIncomingDeposit === full
+                  activeShape(state) === id
                     ? "bg-primary text-primary-foreground"
                     : "text-[#47475d] hover:bg-black/5"
                 )}

@@ -4,19 +4,22 @@
 //   review / action  → approval tracker (no portfolio data — §account gating)
 //   approved         → real dashboard with a dismissible success banner
 //   live             → real dashboard (steady state)
-// A requested/completed account closure outranks all of them — there's no
-// portfolio left to show, so the closure tracker takes the page over.
+// A closed account outranks all of them — there's no portfolio left to show, so
+// the closed state takes the page over. A *requested* closure does not: support
+// hasn't sold anything yet, so the balance is still live and still worth seeing.
+// That state gets a persistent banner over the real dashboard instead.
 // Status is set by finishing onboarding (sessionStorage) and can be flipped
 // with the floating review switcher / ?status= param for design review.
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { recommendPortfolio } from "@/lib/onboarding"
 import { PortfolioOverview } from "@/components/portfolio/overview"
 import { ApplicationRejected, ApprovedBanner, PendingApproval } from "@/components/portfolio/pending-approval"
 import { AccountClosed } from "@/components/settings/account-closed"
-import { ClosureTracker } from "@/components/settings/closure-tracker"
+import { ClosingBanner } from "@/components/portfolio/closing-banner"
+import { snapshot } from "@/lib/account-closure"
 import { useClosure } from "@/components/settings/use-closure"
 
 type Status = "review" | "review-empty" | "action" | "rejected" | "approved" | "live"
@@ -85,14 +88,6 @@ export function DashboardGate() {
     )
   }, [updateClosure])
 
-  const completeClosure = useCallback(() => {
-    updateClosure({ phase: "closed", closedAt: new Date().toISOString() })
-  }, [updateClosure])
-
-  const cancelClosure = useCallback(() => {
-    updateClosure({ phase: "open", requestedAt: null })
-  }, [updateClosure])
-
   function handleFunded(label: string, amount: number) {
     setBankLabel(label)
     setDepositAmount(amount)
@@ -100,22 +95,16 @@ export function DashboardGate() {
     sessionStorage.setItem(FUNDED_KEY, String(amount))
   }
 
-  // Closure outranks approval status: a closing account has no portfolio.
+  // A closed account has no portfolio to show; a closing one still does.
   if (closureReady && closure.phase === "closed") {
     return <AccountClosed closedAt={closure.closedAt} />
   }
-  if (closureReady && closure.phase === "requested") {
-    return (
-      <ClosureTracker
-        requestedAt={closure.requestedAt}
-        onCancel={cancelClosure}
-        onComplete={completeClosure}
-      />
-    )
-  }
+  const closing = closureReady && closure.phase === "requested"
 
   return (
     <>
+      {closing && <ClosingBanner payoutBank={snapshot(closure).payoutBank} />}
+
       {status === "rejected" ? (
         <ApplicationRejected />
       ) : status === "review" || status === "review-empty" || status === "action" ? (
@@ -128,7 +117,7 @@ export function DashboardGate() {
         />
       ) : (
         <>
-          {status === "approved" && <ApprovedBanner onDismiss={() => change("live")} />}
+          {status === "approved" && !closing && <ApprovedBanner onDismiss={() => change("live")} />}
           <PortfolioOverview />
         </>
       )}

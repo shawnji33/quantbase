@@ -119,7 +119,7 @@ export function AccountPanel() {
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-sm font-medium text-[#363643]">Close account</span>
             <span className="text-xs leading-5 text-muted-foreground">
-              Withdraw your funds and close your account for good.
+              We&apos;ll sell your investments, send you the money, and close your account.
             </span>
           </span>
           <RiArrowRightSLine className="size-4 shrink-0 text-[#b4b5c5] transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transform-none" />

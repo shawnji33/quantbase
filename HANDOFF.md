@@ -311,88 +311,133 @@ reviewable.
 
 ---
 
-## 13. Account closure (added 2026-09-07)
+## 13. Account closure (added 2026-09-07, reworked 2026-09-15)
 
 Self-serve closure, reached from the header avatar → **Account settings** → **Close account**.
 
-### The gates are a sequence, not a set
+### What changed on 2026-09-15, and why
 
-The three prerequisites in the brief can't be evaluated independently, so `lib/account-closure.ts`
-models them as an ordered chain where each gate unlocks the next:
+Engineering reviewed the first build and asked for a simpler version: the original flow was right
+but expensive, because it made the user drive the liquidation themselves (sell → wait out T+1
+settlement → withdraw → come back and confirm). That's days of round trips and a lot of brokerage
+plumbing to build.
 
-| # | Gate | Blocks because | Conditional? |
-|---|---|---|---|
-| 0 | Cancel incoming deposit | An in-flight ACH lands after the balance hits zero and re-funds a closing account | Yes — only if one is in flight |
-| 1 | Turn off auto-investments | Recurring buys re-enter positions the user just sold | Yes — only if one is live |
-| 2 | Sell your investments | Positions must be liquidated to cash | No |
-| 3 | Wait for trades to settle | Proceeds are unsettled for ~1 business day and can't be withdrawn | No |
-| 4 | Withdraw your cash | Closing with a balance strands the user's money at the broker | No |
+**Support now runs the liquidation.** The user clears anything still moving money, then submits a
+request. A person reviews it, sells the positions, confirms nothing was missed, sends the proceeds,
+and closes the account. That also buys something the UI could never do on its own: a human catching
+straggling positions and auto-deposits that the client doesn't know about.
 
-Gates 0 and 1 **were not in the original request** — both are genuinely blocking and both are
-reachable in the product today. They render as conditional rows, so the common account sees a clean
-three-step list. The `Account: 5 gates / 3 gates` review switcher toggles between the two shapes.
+Three things fell out of that:
 
-Only one gate is actionable at a time. Rows below it say *"Available once…"* rather than showing a
-disabled button, and the settlement row explicitly says there is nothing for the user to do — that
-wait is time, not action, and without saying so it reads as a bug.
+1. **Sell / settle / withdraw stopped being user actions.** `SellAllDialog` and `WithdrawAllDialog`
+   are gone (recoverable from git history before `2026-09-15` if a standalone sell flow is ever
+   wanted). The T+1 explanation didn't disappear — it moved into "what happens when you submit",
+   where it sets expectations instead of asking for patience mid-task.
+2. **The prerequisites stopped being a chain.** The old gates were ordered because each unlocked the
+   next. With selling gone, the two survivors are independent, so they're no longer numbered and
+   both are actionable at once. A locked row that says "Available once…" would now be inventing a
+   dependency that isn't real.
+3. **The email-code step is gone.** Submitting no longer closes anything by itself — it opens a
+   request a person reviews before a single share is sold, and the user can cancel while it's in
+   flight. A verification code in front of a reversible step is friction without a payoff. *(Worth
+   re-raising if compliance wants an identity check on the request itself; the human review step is
+   what currently stands in for it.)*
+
+### The prerequisites
+
+Everything here is conditional. The common account has none of them and closing is a single screen.
+
+| Row | Blocks because | Shown when |
+|---|---|---|
+| Cancel your incoming deposit | An in-flight ACH lands after the account closes and re-funds it | A deposit is in flight |
+| Turn off auto-investments | Recurring buys re-enter positions while we're liquidating | An auto-investment is live |
+| Link a bank account | Support has nowhere to send the proceeds | No bank on file |
+
+The **Account: Deposit + auto / Nothing to do / No bank** review switcher moves between the three
+shapes. Link-a-bank uses the real `PlaidDialog` from onboarding, and is mounted only while open —
+`react-plaid-link` injects Plaid's script on mount, and most people closing an account never open it.
+
+### What happens when you submit
+
+Below the prerequisites, a summary card states the balance (positions + cash), the destination bank,
+and the timing. Handing a job to someone else only reassures if the user can see exactly what was
+handed over, so this is on screen *before* they commit, not after.
+
+`CLOSURE_ETA` is **3 to 5 business days** — sale (same day) + settlement (about one) + ACH (one to
+three), stated as one range because that's what the user is actually waiting on. **Ops should confirm
+that number before launch.**
 
 ### Lifecycle
 
-`open` → (all gates cleared) → confirm → `requested` → `closed`, with cancel from `requested` back to
-`open`. Closure **outranks account-approval status** on the dashboard: `dashboard-gate.tsx` renders
-the tracker or the closed state instead of the portfolio. State persists in `sessionStorage` under
-`qb-closure`, because the real flow spans days (T+1 settlement, then 1–3 business days of ACH).
+`open` → (prerequisites cleared) → confirm → `requested` → `closed`, with cancel from `requested`
+back to `open`. State persists in `sessionStorage` under `qb-closure`.
+
+**The dashboard stays live while a closure is requested.** This is a change from the first build,
+where the tracker took the page over. Support hasn't sold anything yet, so the balance is still
+invested and still moving for days — hiding it would misrepresent the account. `/portfolio` shows the
+real dashboard under a persistent `ClosingBanner` linking to the tracker. Only `closed` takes the
+page over, because then there genuinely is no portfolio. The banner isn't dismissible: it's a live
+state, not an announcement.
+
+Cancel copy is honest in both directions — nothing has been sold at request time, but if the desk has
+already started, the user may end up holding cash instead of strategies. Implying a clean rollback we
+can't perform is how this becomes a support escalation.
 
 ### Quiver acknowledgment
 
-Shown to **everyone** on the confirm step with a **required** checkbox, not just to users we can see
-holding a Quiver strategy — holdings data can't see someone who held one in the past and still pays
-for the subscription. Copy states that the subscription is billed by Quiver, not Quantbase, and
-points at `james@quiverquant.com` (mailto + copy-to-clipboard). The checkbox gates the submit button.
+Unchanged, and still step 1 of the confirm modal: shown to **everyone** with a **required** checkbox,
+not just users we can see holding a Quiver strategy — holdings data can't see someone who held one in
+the past and still pays for the subscription. Copy states the subscription is billed by Quiver, not
+Quantbase, and points at `james@quiverquant.com` (mailto + copy-to-clipboard). The checkbox gates
+Continue.
 
 ### Files
 
 ```
-lib/account-closure.ts                     # lifecycle, snapshot, gate evaluator
-components/app-shell.tsx                   # header + sidebar, extracted from both layouts; avatar menu
+lib/account-closure.ts                     # lifecycle, snapshot, prerequisite evaluator
+components/app-shell.tsx                   # header + sidebar, avatar menu
+components/portfolio/closing-banner.tsx    # persistent banner over the live dashboard
 components/settings/
-  bits.tsx                                 # SettingsPage / Card / Row / BackLink
+  bits.tsx                                 # ClosurePage / Card / BackLink
   use-closure.ts                           # sessionStorage-backed closure state
-  account-settings.tsx                     # /settings/account
   close-account.tsx                        # orchestrator + review switchers
-  closure-checklist.tsx                    # the gate list
-  closure-actions.tsx                      # sell-all, withdraw-all, cancel-deposit, turn-off-auto, cancel-closure
-  closure-confirm.tsx                      # Quiver ack + reason + email-code
+  closure-request.tsx                      # prerequisites + "what happens" summary  (was closure-checklist.tsx)
+  closure-actions.tsx                      # cancel-deposit, turn-off-auto, cancel-closure
+  closure-confirm.tsx                      # two-step modal: Quiver ack + reason
   closure-tracker.tsx                      # requested state
   account-closed.tsx                       # terminal state
 ```
 
 ### Review links
 
-Every point in the closure lifecycle is linkable, so a state can be sent to
-someone rather than described. The URL wins over stored state.
+Every point in the lifecycle is linkable, so a state can be sent to someone rather than described.
+The URL wins over stored state.
 
 | State | Link |
 |---|---|
 | Nothing started | `/settings/close-account?state=start` |
-| Ready to sell | `/settings/close-account?state=sell` |
-| Trades settling (resolves after ~7s) | `/settings/close-account?state=settling` |
-| All gates cleared | `/settings/close-account?state=ready` |
+| Ready to submit | `/settings/close-account?state=ready` |
 | Closure requested (tracker) | `/settings/close-account?state=requested` |
 | Closed (terminal) | `/settings/close-account?state=closed` |
-| Three-gate account | add `&gates=3` to any of the above |
-| Tracker taking over the dashboard | `/portfolio?closure=requested` |
+| Account with nothing to turn off | add `&account=clean` to any of the above |
+| Account with no bank on file | add `&account=no-bank` |
+| Confirm modal, step 1 / step 2 | `?dialog=confirm` / `?dialog=confirm-reason` |
+| A prerequisite's modal | `?dialog=cancel-deposit` \| `turn-off-auto` \| `link-bank` |
+| Dashboard with the closing banner | `/portfolio?closure=requested` |
 | Closed state on the dashboard | `/portfolio?closure=closed` |
+
+`?gates=3` from the previous build still works as an alias for `?account=clean`, since those links
+are already circulating. `?state=sell|settling|settled` and `?dialog=confirm-verify` are gone — those
+states no longer exist.
 
 ### Prototype compressions (change before shipping)
 
-- Settlement resolves after **7s** (`SETTLE_DELAY_MS`) and closure completes after **9s**
-  (`CLOSE_DELAY_MS`) so the whole lifecycle is reviewable in one sitting. Real timings are stated in
-  the copy.
-- The email code accepts **any** 6 digits.
-- `Sell` on the strategy detail page and `Transfer` in `AccountPanel` are still inert — those are
-  *partial* sell/transfer flows and there's no partial-position model behind them. Sell-all and
-  withdraw-all (the flows closure actually needs) are real.
+- Closure completes **9s** after the request (`CLOSE_DELAY_MS`) so the terminal state is reachable in
+  one sitting. The copy states the real timing.
+- Submitting doesn't actually open a support ticket — that integration is the main piece of real work
+  left on this flow.
+- `Sell` on the strategy detail page and `Transfer` in `AccountPanel` are still inert: those are
+  *partial* sell/transfer flows and there's no partial-position model behind them.
 
 ### Open policy questions (compliance/ops, not design)
 
@@ -401,7 +446,11 @@ someone rather than described. The URL wins over stored state.
 2. **Residual cash** (trailing dividends, interest, settlements) landing on a zero-balance account.
    Built assuming **Quantbase contacts the user and reimburses to the last linked bank**.
 3. **Can a closed account be reopened?** Built assuming **no — full re-onboarding**. The closed
-   screen deliberately offers no re-open path; if that policy changes it needs a new entry point.
+   screen deliberately offers no re-open path.
+4. **Is the closure request identity-checked?** The email code was removed on engineering's call.
+   Built assuming **the human review step covers it**.
+5. **How long can a user cancel?** Built assuming **any time before the account closes**, with copy
+   that admits a partial sale may already have happened.
 
 ---
 
