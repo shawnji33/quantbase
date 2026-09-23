@@ -349,11 +349,15 @@ Everything here is conditional. The common account has none of them and closing 
 
 | Row | Blocks because | Shown when |
 |---|---|---|
-| Cancel your incoming deposit | An in-flight ACH lands after the account closes and re-funds it | A deposit is in flight |
 | Turn off auto-investments | Recurring buys re-enter positions while we're liquidating | An auto-investment is live |
 | Link a bank account | Support has nowhere to send the proceeds | No bank on file |
 
-The **Account: Deposit + auto / Nothing to do / No bank** review switcher moves between the three
+A third row — **cancel your incoming deposit** — was removed on **2026-09-23**: engineering can't
+cancel an in-flight ACH from the app, so the row offered something the product can't do. A deposit
+that lands mid-closure is now caught in support's review, which is the same place straggling
+positions get caught.
+
+The **Account: Auto-invest on / Nothing to do / No bank** review switcher moves between the three
 shapes. Link-a-bank uses the real `PlaidDialog` from onboarding, and is mounted only while open —
 `react-plaid-link` injects Plaid's script on mount, and most people closing an account never open it.
 
@@ -402,7 +406,7 @@ components/settings/
   use-closure.ts                           # sessionStorage-backed closure state
   close-account.tsx                        # orchestrator + review switchers
   closure-request.tsx                      # prerequisites + "what happens" summary  (was closure-checklist.tsx)
-  closure-actions.tsx                      # cancel-deposit, turn-off-auto, cancel-closure
+  closure-actions.tsx                      # turn-off-auto, cancel-closure
   closure-confirm.tsx                      # two-step modal: Quiver ack + reason
   closure-tracker.tsx                      # requested state
   account-closed.tsx                       # terminal state
@@ -422,7 +426,7 @@ The URL wins over stored state.
 | Account with nothing to turn off | add `&account=clean` to any of the above |
 | Account with no bank on file | add `&account=no-bank` |
 | Confirm modal, step 1 / step 2 | `?dialog=confirm` / `?dialog=confirm-reason` |
-| A prerequisite's modal | `?dialog=cancel-deposit` \| `turn-off-auto` \| `link-bank` |
+| A prerequisite's modal | `?dialog=turn-off-auto` \| `link-bank` |
 | Dashboard with the closing banner | `/portfolio?closure=requested` |
 | Closed state on the dashboard | `/portfolio?closure=closed` |
 
@@ -444,7 +448,9 @@ states no longer exist.
 1. **How long does sign-in survive closure?** The 1099-B for the closing year is issued *after* the
    account is gone. Built assuming **seven years, read-only, documents only**.
 2. **Residual cash** (trailing dividends, interest, settlements) landing on a zero-balance account.
-   Built assuming **Quantbase contacts the user and reimburses to the last linked bank**.
+   Built assuming **Quantbase contacts the user and reimburses to the last linked bank**. Note that
+   as of 2026-09-23 the closed screen no longer states this — its footer was rewritten to point at
+   support for tax documents — so the assumption is undocumented in the UI itself.
 3. **Can a closed account be reopened?** Built assuming **no — full re-onboarding**. The closed
    screen deliberately offers no re-open path.
 4. **Is the closure request identity-checked?** The email code was removed on engineering's call.

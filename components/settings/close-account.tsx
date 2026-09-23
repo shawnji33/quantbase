@@ -17,6 +17,7 @@ import {
   INITIAL_CLOSURE,
   LINKED_BANK,
   canClose,
+  reasonFromSlug,
   type ClosureState,
 } from "@/lib/account-closure"
 import { useDialogParam } from "@/components/settings/use-dialog-param"
@@ -26,7 +27,6 @@ import { useDialogParam } from "@/components/settings/use-dialog-param"
 // spans days of real time, so the team needs to jump straight to any state.
 
 const ALL_CLEAR = {
-  depositCancelled: true,
   autoInvestOff: true,
   bankLabel: LINKED_BANK,
 }
@@ -43,15 +43,15 @@ type PresetId = (typeof PRESETS)[number][0]
 // Which prerequisites this account has at all. Kept separate from lifecycle
 // position so a reviewer can walk any shape through any state.
 const SHAPES = {
-  full: { hasIncomingDeposit: true, hasAutoInvest: true, hasLinkedBank: true },
-  clean: { hasIncomingDeposit: false, hasAutoInvest: false, hasLinkedBank: true },
-  "no-bank": { hasIncomingDeposit: false, hasAutoInvest: false, hasLinkedBank: false },
+  full: { hasAutoInvest: true, hasLinkedBank: true },
+  clean: { hasAutoInvest: false, hasLinkedBank: true },
+  "no-bank": { hasAutoInvest: false, hasLinkedBank: false },
 } as const
 
 type ShapeId = keyof typeof SHAPES
 
 const SHAPE_LABELS: [ShapeId, string][] = [
-  ["full", "Deposit + auto"],
+  ["full", "Auto-invest on"],
   ["clean", "Nothing to do"],
   ["no-bank", "No bank"],
 ]
@@ -81,7 +81,7 @@ function activePreset(s: ClosureState): PresetId {
 
 function activeShape(s: ClosureState): ShapeId {
   if (!s.hasLinkedBank) return "no-bank"
-  return s.hasIncomingDeposit || s.hasAutoInvest ? "full" : "clean"
+  return s.hasAutoInvest ? "full" : "clean"
 }
 
 /* -------------------------------- component -------------------------------- */
@@ -92,8 +92,16 @@ export function CloseAccount() {
   const [capturing, setCapturing] = useState(false)
   const dialogParam = useDialogParam()
 
-  // ?dialog=confirm|confirm-reason opens the two-step modal on that step.
+  // ?dialog=confirm|confirm-reason opens the two-step modal on that step, and
+  // ?reason=<slug> pre-selects a reason — the required-detail state lives two
+  // clicks inside a modal and is otherwise impossible to send to anyone.
   const confirmStep = dialogParam === "confirm-reason" ? ("reason" as const) : ("quiver" as const)
+  const [initialReason, setInitialReason] = useState<string | null>(null)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time URL read
+    setInitialReason(reasonFromSlug(new URLSearchParams(window.location.search).get("reason")))
+  }, [])
 
   useEffect(() => {
     if (!dialogParam?.startsWith("confirm")) return
@@ -133,8 +141,8 @@ export function CloseAccount() {
   }
 
   // Cancelling restores the account. Nothing the user did on the request screen
-  // is undone — their deposit stays cancelled and auto-invest stays off, which
-  // is both true and the only thing we could honestly promise.
+  // is undone — auto-invest stays off, which is both true and the only thing we
+  // could honestly promise.
   function cancelClosure() {
     update({ phase: "open", requestedAt: null })
   }
@@ -169,6 +177,7 @@ export function CloseAccount() {
             onOpenChange={setConfirmOpen}
             onConfirm={confirm}
             initialStep={confirmStep}
+            initialReason={initialReason}
           />
         </>
       )}

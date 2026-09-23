@@ -20,10 +20,7 @@ import { useDialogParam } from "@/components/settings/use-dialog-param"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BackLink, Card, ClosurePage } from "@/components/settings/bits"
-import {
-  CancelDepositDialog,
-  TurnOffAutoDialog,
-} from "@/components/settings/closure-actions"
+import { TurnOffAutoDialog } from "@/components/settings/closure-actions"
 import { PlaidDialog } from "@/components/onboarding/bank-funding"
 import { usd } from "@/lib/portfolio"
 import {
@@ -69,9 +66,9 @@ export function ClosureRequest({
   const [action, setAction] = useState<GateAction | null>(null)
   const dialogParam = useDialogParam()
 
-  // ?dialog=cancel-deposit|turn-off-auto|link-bank opens that row's modal.
+  // ?dialog=turn-off-auto|link-bank opens that row's modal.
   useEffect(() => {
-    const allowed: GateAction[] = ["cancel-deposit", "turn-off-auto", "link-bank"]
+    const allowed: GateAction[] = ["turn-off-auto", "link-bank"]
     if (!dialogParam || !allowed.includes(dialogParam as GateAction)) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
     setAction(dialogParam as GateAction)
@@ -93,7 +90,7 @@ export function ClosureRequest({
         <p className="max-w-lg text-sm leading-6 text-muted-foreground">
           {ready
             ? "Send us the request and our team takes it from there. You don't have to sell anything or move your money yourself."
-            : "First turn off anything still moving money into your account. Then send us the request and our team takes it from there."}
+            : "First turn off anything that would keep investing while we close things out. Then send us the request and our team takes it from there."}
         </p>
       </div>
 
@@ -185,11 +182,6 @@ export function ClosureRequest({
         )}
       </div>
 
-      <CancelDepositDialog
-        open={action === "cancel-deposit"}
-        onOpenChange={(v) => !v && setAction(null)}
-        onConfirm={() => update({ depositCancelled: true })}
-      />
       <TurnOffAutoDialog
         open={action === "turn-off-auto"}
         onOpenChange={(v) => !v && setAction(null)}

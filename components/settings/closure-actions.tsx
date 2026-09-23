@@ -7,7 +7,9 @@
 //
 // Sell-all and withdraw-all used to live here. Support liquidates the account
 // now, so the user never places those orders themselves; the dialogs are in git
-// history (pre-2026-09-15) if a standalone sell flow is ever wanted.
+// history (pre-2026-09-15) if a standalone sell flow is ever wanted. The
+// cancel-deposit confirm went the same way on 2026-09-23 — the app can't stop
+// an in-flight ACH, so the flow no longer offers to.
 
 import { useState } from "react"
 import { RiLoader4Line } from "@remixicon/react"
@@ -22,7 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { usd } from "@/lib/portfolio"
-import { AUTO_INVEST, INCOMING_DEPOSIT } from "@/lib/account-closure"
+import { AUTO_INVEST } from "@/lib/account-closure"
 
 /* ------------------------------ shared plumbing ---------------------------- */
 
@@ -67,46 +69,7 @@ function SubmitButton({
   )
 }
 
-/* --------------------------- deposit / auto-invest ------------------------- */
-
-export function CancelDepositDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-}: {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  onConfirm: () => void
-}) {
-  const { busy, run } = useSubmit(() => {
-    onOpenChange(false)
-    onConfirm()
-  })
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Cancel this deposit?</DialogTitle>
-          <DialogDescription>
-            {`${usd(INCOMING_DEPOSIT.amount)} from ${INCOMING_DEPOSIT.from} is on its way in. We'll stop it before it lands, and the money stays in your bank.`}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>
-            Keep it
-          </Button>
-          <SubmitButton
-            busy={busy}
-            onClick={run}
-            label="Cancel deposit"
-            pendingLabel="Cancelling…"
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
+/* -------------------------------- auto-invest ------------------------------ */
 
 export function TurnOffAutoDialog({
   open,

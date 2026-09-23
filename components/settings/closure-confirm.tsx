@@ -15,7 +15,7 @@
 // Modal rather than a page because it's transactional: the user is mid-decision
 // and the checklist they're acting on stays visible behind it.
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { RiArrowLeftSLine, RiErrorWarningLine, RiFileCopyLine, RiCheckLine, RiLoader4Line } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
@@ -29,13 +29,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { CLOSE_REASONS, CLOSURE_ETA, QUIVER_EMAIL } from "@/lib/account-closure"
+import {
+  CLOSE_REASONS,
+  CLOSURE_ETA,
+  OTHER_REASON,
+  QUIVER_EMAIL,
+  REASON_PROMPTS,
+} from "@/lib/account-closure"
 
 const AMBER = "#B45309"
-
-// The free-text bucket. An "other" option with nowhere to write is a survey
-// answer that collects nothing.
-const OTHER = "Something else"
 
 const STEPS = ["quiver", "reason"] as const
 type Step = (typeof STEPS)[number]
@@ -53,18 +55,23 @@ export function ClosureConfirmDialog({
   onOpenChange,
   onConfirm,
   initialStep = "quiver",
+  initialReason = null,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   onConfirm: (reason: string | null) => void
-  // Review deep links can drop straight onto a later step.
+  // Review deep links can drop straight onto a later step, and onto a
+  // pre-selected reason — the required-detail state is otherwise two clicks
+  // deep and impossible to link to.
   initialStep?: Step
+  initialReason?: string | null
 }) {
   const [step, setStep] = useState<Step>(initialStep)
   const [dir, setDir] = useState<1 | -1>(1)
   const [ack, setAck] = useState(false)
-  const [reason, setReason] = useState<string | null>(null)
+  const [reason, setReason] = useState<string | null>(initialReason)
   const [detail, setDetail] = useState("")
+  const [detailError, setDetailError] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   // Callback ref, not useRef: Radix mounts the dialog body a tick after `open`
@@ -72,8 +79,13 @@ export function ClosureConfirmDialog({
   // first step unmeasured (making step 1 → 2 jump instead of animate).
   const [bodyNode, setBodyNode] = useState<HTMLDivElement | null>(null)
   const [bodyHeight, setBodyHeight] = useState<number | undefined>(undefined)
+  const detailRef = useRef<HTMLTextAreaElement | null>(null)
 
   const index = STEPS.indexOf(step)
+  // Every reason takes an optional note. "Something else" is the exception:
+  // on its own it tells us nothing, so there the note is the answer.
+  const detailRequired = reason === OTHER_REASON
+  const detailMissing = detailRequired && !detail.trim()
 
   // Reopening starts clean — an abandoned attempt shouldn't carry its answers
   // into a new decision.
@@ -83,11 +95,12 @@ export function ClosureConfirmDialog({
     setStep(initialStep)
     setDir(1)
     setAck(false)
-    setReason(null)
+    setReason(initialReason)
     setDetail("")
+    setDetailError(false)
     setBusy(false)
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, initialStep])
+  }, [open, initialStep, initialReason])
 
   // The two steps are different heights. Measuring the active one and
   // animating to it beats a fixed min-height, which left the short middle step
@@ -121,11 +134,30 @@ export function ClosureConfirmDialog({
     }
   }
 
+  function pickReason(r: string) {
+    const next = reason === r ? null : r
+    setReason(next)
+    setDetailError(false)
+    // Deselecting drops the note with it — a detail with no reason attached is
+    // an orphan. Switching between reasons keeps what was typed; throwing away
+    // someone's sentence because they re-tapped a chip is worse than a prompt
+    // that no longer matches.
+    if (!next) setDetail("")
+  }
+
+  // The button stays live and explains itself on press. A submit that is
+  // disabled for a reason the user can't see reads as broken, which is the same
+  // rule the request screen's locked rows follow.
   function submit() {
     if (busy) return
+    if (detailMissing) {
+      setDetailError(true)
+      detailRef.current?.focus()
+      return
+    }
     setBusy(true)
-    const answer =
-      reason === OTHER && detail.trim() ? `${OTHER}: ${detail.trim()}` : reason
+    const note = detail.trim()
+    const answer = reason ? (note ? `${reason}: ${note}` : reason) : null
     window.setTimeout(() => onConfirm(answer), 1100)
   }
 
@@ -217,7 +249,7 @@ export function ClosureConfirmDialog({
                   <button
                     key={r}
                     type="button"
-                    onClick={() => setReason(reason === r ? null : r)}
+                    onClick={() => pickReason(r)}
                     className={cn(
                       "rounded-full border px-3.5 py-1.5 text-sm font-medium",
                     "transition-colors duration-150 ease-out active:translate-y-px motion-reduce:transform-none",
@@ -231,17 +263,49 @@ export function ClosureConfirmDialog({
                 ))}
               </div>
 
-              {reason === OTHER ? (
-                <textarea
-                  autoFocus
-                  value={detail}
-                  onChange={(e) => setDetail(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Tell us what happened, if you want to."
-                  className="w-full resize-none rounded-lg border border-[var(--border-secondary)] bg-card px-3.5 py-2.5 text-sm leading-6 text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out placeholder:text-[#b4b5c5] focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
-                />
-              ) : null}
+              {reason && (
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="closure-detail"
+                    className="text-xs font-medium text-[#47475d]"
+                  >
+                    {detailRequired ? "What happened?" : "Anything you'd add?"}
+                    {!detailRequired && (
+                      <span className="font-normal text-muted-foreground"> (optional)</span>
+                    )}
+                  </label>
+                  <textarea
+                    id="closure-detail"
+                    ref={detailRef}
+                    // Only the required field grabs focus. Pulling the caret out
+                    // of the chip row every time someone taps a reason makes
+                    // changing your mind harder than making it up.
+                    autoFocus={detailRequired}
+                    value={detail}
+                    onChange={(e) => {
+                      setDetail(e.target.value)
+                      if (detailError) setDetailError(false)
+                    }}
+                    rows={3}
+                    maxLength={500}
+                    aria-required={detailRequired}
+                    aria-invalid={detailError}
+                    aria-describedby={detailError ? "closure-detail-error" : undefined}
+                    placeholder={REASON_PROMPTS[reason] ?? "Tell us more."}
+                    className={cn(
+                      "w-full resize-none rounded-lg border bg-card px-3.5 py-2.5 text-sm leading-6 text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out placeholder:text-[#b4b5c5]",
+                      detailError
+                        ? "border-[#d92d20] focus:border-[#d92d20] focus:ring-3 focus:ring-[#d92d20]/10"
+                        : "border-[var(--border-secondary)] focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
+                    )}
+                  />
+                  {detailError && (
+                    <p id="closure-detail-error" className="text-xs leading-5 text-[#d92d20]">
+                      Tell us what happened, or pick one of the reasons above.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <p className="rounded-[10px] bg-[#f5f6f7] px-3.5 py-3 text-xs leading-5 text-muted-foreground">
                 This sends a closure request to our team. We sell your investments, send the money

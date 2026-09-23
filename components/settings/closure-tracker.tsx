@@ -11,7 +11,7 @@
 // perform once the desk has started.
 
 import { useEffect, useState } from "react"
-import { RiCheckLine, RiMailLine } from "@remixicon/react"
+import { RiCheckLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -88,8 +88,7 @@ export function ClosureTracker({
         <h1 className="text-2xl font-semibold tracking-tight text-[#363643]">
           Your account is closing
         </h1>
-        <p className="flex max-w-md items-center gap-2 text-sm leading-6 text-muted-foreground">
-          <RiMailLine className="size-4 shrink-0" />
+        <p className="max-w-md text-sm leading-6 text-muted-foreground">
           We&apos;ll email you when your money is on its way, and again when it&apos;s done.
         </p>
       </div>

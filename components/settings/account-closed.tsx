@@ -52,11 +52,11 @@ export function AccountClosed({ closedAt }: { closedAt: string | null }) {
       </Card>
 
       <p className="px-1 text-center text-xs leading-5 text-muted-foreground">
-        If any dividends or interest arrive after today, we&apos;ll contact you and send them to
-        your last linked bank. Questions?{" "}
+        Need this year&apos;s tax documents, or have any other questions? Email{" "}
         <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary hover:underline">
           {SUPPORT_EMAIL}
-        </a>
+        </a>{" "}
+        and we&apos;ll help.
       </p>
     </ClosurePage>
   )

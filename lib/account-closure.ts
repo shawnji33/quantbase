@@ -9,10 +9,15 @@
 // the stragglers the UI can't see.
 //
 // What survives is the part the user genuinely has to do: stop anything that
-// would re-fund or re-invest the account while we're closing it, and make sure
-// there's somewhere to send the money. Those prerequisites are independent of
-// each other, so unlike the old sell → settle → withdraw chain they're all
+// would re-invest the account while we're closing it, and make sure there's
+// somewhere to send the money. Those prerequisites are independent of each
+// other, so unlike the old sell → settle → withdraw chain they're all
 // actionable at once.
+//
+// A "cancel your incoming deposit" row lived here until 2026-09-23. Engineering
+// can't cancel an in-flight ACH from the app, so the row promised something the
+// product can't do. Support catches a deposit that lands mid-closure during
+// their review instead.
 
 import { ACCOUNT, HELD_STRATEGIES, usd } from "@/lib/portfolio"
 
@@ -25,13 +30,11 @@ export type ClosurePhase = "open" | "requested" | "closed"
 export type ClosureState = {
   phase: ClosurePhase
   // Account shape, not closure progress. Each of these only exists for accounts
-  // that actually have a deposit in flight, a live auto-investment, or no bank
-  // on file — the common account sees none of them and goes straight to submit.
-  hasIncomingDeposit: boolean
+  // that actually have a live auto-investment or no bank on file — the common
+  // account sees neither and goes straight to submit.
   hasAutoInvest: boolean
   hasLinkedBank: boolean
   // Prerequisite progress. Each flag is set by the flow that clears that row.
-  depositCancelled: boolean
   autoInvestOff: boolean
   // The bank the user linked during closure, when they had none on file.
   bankLabel: string | null
@@ -45,10 +48,8 @@ export const CLOSURE_KEY = "qb-closure"
 
 export const INITIAL_CLOSURE: ClosureState = {
   phase: "open",
-  hasIncomingDeposit: true,
   hasAutoInvest: true,
   hasLinkedBank: true,
-  depositCancelled: false,
   autoInvestOff: false,
   bankLabel: null,
   requestedAt: null,
@@ -74,7 +75,7 @@ export function writeClosure(next: ClosureState) {
 /* ----------------------------- account snapshot ---------------------------- */
 
 // Baseline account, before any closure step has run: the 7 held strategies from
-// the dashboard, a live weekly auto-investment, and an ACH deposit in flight.
+// the dashboard and a live weekly auto-investment.
 
 export const LINKED_BANK = "Chase Checking ••••4831"
 
@@ -82,12 +83,6 @@ export const AUTO_INVEST = {
   amount: 100,
   cadence: "weekly, every Monday",
   nextRun: "Sep 21, 2026",
-}
-
-export const INCOMING_DEPOSIT = {
-  amount: 250,
-  from: LINKED_BANK,
-  arrivesOn: "Sep 17, 2026",
 }
 
 export const POSITIONS_VALUE = HELD_STRATEGIES.reduce((sum, s) => sum + s.value, 0)
@@ -102,7 +97,6 @@ export type Snapshot = {
   cash: number
   total: number
   autoInvest: typeof AUTO_INVEST | null
-  incomingDeposit: typeof INCOMING_DEPOSIT | null
   payoutBank: string | null
 }
 
@@ -113,16 +107,15 @@ export function snapshot(s: ClosureState): Snapshot {
     cash: ACCOUNT.buyingPower,
     total: POSITIONS_VALUE + ACCOUNT.buyingPower,
     autoInvest: s.hasAutoInvest && !s.autoInvestOff ? AUTO_INVEST : null,
-    incomingDeposit: s.hasIncomingDeposit && !s.depositCancelled ? INCOMING_DEPOSIT : null,
     payoutBank: s.hasLinkedBank ? LINKED_BANK : s.bankLabel,
   }
 }
 
 /* ------------------------------- prerequisites ------------------------------ */
 
-export type GateId = "deposit" | "auto-invest" | "bank"
+export type GateId = "auto-invest" | "bank"
 export type GateStatus = "done" | "todo"
-export type GateAction = "cancel-deposit" | "turn-off-auto" | "link-bank"
+export type GateAction = "turn-off-auto" | "link-bank"
 
 export type Gate = {
   id: GateId
@@ -139,19 +132,6 @@ export type Gate = {
 export function gatesFor(state: ClosureState): Gate[] {
   const snap = snapshot(state)
   const gates: Gate[] = []
-
-  if (state.hasIncomingDeposit) {
-    gates.push({
-      id: "deposit",
-      title: "Cancel your incoming deposit",
-      status: snap.incomingDeposit ? "todo" : "done",
-      detail: snap.incomingDeposit
-        ? `${usd(snap.incomingDeposit.amount)} from ${snap.incomingDeposit.from}, arriving ${snap.incomingDeposit.arrivesOn}`
-        : "Cancelled. Nothing else is on its way in.",
-      action: "cancel-deposit",
-      actionLabel: "Cancel deposit",
-    })
-  }
 
   if (state.hasAutoInvest) {
     gates.push({
@@ -210,6 +190,37 @@ export const CLOSE_REASONS = [
   "Performance wasn't what I expected",
   "Something else",
 ]
+
+// The free-text bucket. Picking it says nothing on its own, so it's the one
+// reason where the detail field is required rather than optional.
+export const OTHER_REASON = "Something else"
+
+// A prompt per reason, because "Tell us more" collects nothing. Asking the
+// specific follow-up a human would ask is what turns this from a survey
+// checkbox into something support can act on.
+export const REASON_PROMPTS: Record<string, string> = {
+  "Fees are too high": "Which fees, and what were you expecting to pay?",
+  "Moving to another app": "Which one, and what made you switch?",
+  "I'm not using it": "What would have made it worth using?",
+  "Performance wasn't what I expected": "What did you expect, and what did you see?",
+  [OTHER_REASON]: "Tell us what happened.",
+}
+
+// Reasons are addressable for review links: ?reason=moving-to-another-app.
+export function reasonSlug(reason: string) {
+  return reason
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
+export function reasonFromSlug(slug: string | null): string | null {
+  if (!slug) return null
+  const wanted = slug.toLowerCase()
+  // "other" is the spelling people reach for when linking the required case.
+  if (wanted === "other") return OTHER_REASON
+  return CLOSE_REASONS.find((r) => reasonSlug(r) === wanted) ?? null
+}
 
 // The prototype compresses the real wait so a reviewer can walk the whole
 // lifecycle in one sitting. The copy still states the real timing.
