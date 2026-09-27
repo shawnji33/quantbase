@@ -9,8 +9,8 @@
 //
 // The email-code step was dropped in the 2026-09-15 rework. Submitting no longer
 // closes anything on its own: it opens a request a person reviews before a
-// single share is sold, and the user can cancel the whole thing while it's in
-// flight. A code in front of that is friction guarding a reversible step.
+// single share is sold. A code in front of that is friction the human review
+// already covers.
 //
 // Modal rather than a page because it's transactional: the user is mid-decision
 // and the checklist they're acting on stays visible behind it.
@@ -35,6 +35,7 @@ import {
   OTHER_REASON,
   QUIVER_EMAIL,
   REASON_PROMPTS,
+  SUPPORT_EMAIL,
 } from "@/lib/account-closure"
 
 const AMBER = "#B45309"
@@ -59,7 +60,7 @@ export function ClosureConfirmDialog({
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onConfirm: (reason: string | null) => void
+  onConfirm: (reason: string | null, wishlist: string | null) => void
   // Review deep links can drop straight onto a later step, and onto a
   // pre-selected reason — the required-detail state is otherwise two clicks
   // deep and impossible to link to.
@@ -72,6 +73,7 @@ export function ClosureConfirmDialog({
   const [reason, setReason] = useState<string | null>(initialReason)
   const [detail, setDetail] = useState("")
   const [detailError, setDetailError] = useState(false)
+  const [wish, setWish] = useState("")
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   // Callback ref, not useRef: Radix mounts the dialog body a tick after `open`
@@ -98,6 +100,7 @@ export function ClosureConfirmDialog({
     setReason(initialReason)
     setDetail("")
     setDetailError(false)
+    setWish("")
     setBusy(false)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, initialStep, initialReason])
@@ -112,7 +115,7 @@ export function ClosureConfirmDialog({
     const ro = new ResizeObserver(sync)
     ro.observe(bodyNode)
     return () => ro.disconnect()
-  }, [bodyNode, step, reason])
+  }, [bodyNode, step, reason, detailError])
 
   useEffect(() => {
     if (!copied) return
@@ -158,7 +161,7 @@ export function ClosureConfirmDialog({
     setBusy(true)
     const note = detail.trim()
     const answer = reason ? (note ? `${reason}: ${note}` : reason) : null
-    window.setTimeout(() => onConfirm(answer), 1100)
+    window.setTimeout(() => onConfirm(answer, wish.trim() || null), 1100)
   }
 
   const titles: Record<Step, { title: string; description: string }> = {
@@ -185,7 +188,7 @@ export function ClosureConfirmDialog({
 
         <div
           style={{ height: bodyHeight }}
-          className="overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none"
+          className="max-h-[58vh] overflow-x-hidden overflow-y-auto transition-[height] duration-300 ease-out motion-reduce:transition-none"
         >
           <div key={step} ref={setBodyNode} className={stepAnim(dir)}>
           {step === "quiver" && (
@@ -307,10 +310,37 @@ export function ClosureConfirmDialog({
                 </div>
               )}
 
+              {/* A second, separate question. Divider and its own label so it
+                  reads as a new ask rather than more room to answer the last
+                  one — and it stands on its own, since someone who skipped the
+                  reason chips may still want to tell us what was missing. */}
+              <div className="flex flex-col gap-1.5 border-t border-[var(--border-secondary)] pt-3.5">
+                <label
+                  htmlFor="closure-wishlist"
+                  className="text-xs font-medium text-[#47475d]"
+                >
+                  Any features you&apos;d like to see?
+                  <span className="font-normal text-muted-foreground"> (optional)</span>
+                </label>
+                <textarea
+                  id="closure-wishlist"
+                  value={wish}
+                  onChange={(e) => setWish(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="A feature, a strategy, anything we're missing."
+                  className="w-full resize-none rounded-lg border border-[var(--border-secondary)] bg-card px-3.5 py-2.5 text-sm leading-6 text-[#363643] shadow-[var(--shadow-card)] outline-none transition-[color,border-color,box-shadow] duration-150 ease-out placeholder:text-[#b4b5c5] focus:border-primary/60 focus:ring-3 focus:ring-primary/10"
+                />
+              </div>
+
               <p className="rounded-[10px] bg-[#f5f6f7] px-3.5 py-3 text-xs leading-5 text-muted-foreground">
                 This sends a closure request to our team. We sell your investments, send the money
-                to your linked bank, and close your Quantbase and Alpaca accounts, usually within{" "}
-                {CLOSURE_ETA}. You can cancel while it&apos;s in progress.
+                to your linked bank, and close your Quantbase account, usually within{" "}
+                {CLOSURE_ETA}. If you change your mind, reach out to our{" "}
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary hover:underline">
+                  support team
+                </a>
+                .
               </p>
             </div>
           )}

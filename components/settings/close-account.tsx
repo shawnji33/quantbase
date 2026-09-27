@@ -135,16 +135,14 @@ export function CloseAccount() {
     update({ phase: "closed", closedAt: new Date().toISOString() })
   }, [update])
 
-  function confirm(reason: string | null) {
+  function confirm(reason: string | null, wishlist: string | null) {
     setConfirmOpen(false)
-    update({ phase: "requested", requestedAt: new Date().toISOString(), reason })
-  }
-
-  // Cancelling restores the account. Nothing the user did on the request screen
-  // is undone — auto-invest stays off, which is both true and the only thing we
-  // could honestly promise.
-  function cancelClosure() {
-    update({ phase: "open", requestedAt: null })
+    update({
+      phase: "requested",
+      requestedAt: new Date().toISOString(),
+      reason,
+      wishlist,
+    })
   }
 
   function jump(id: PresetId) {
@@ -164,7 +162,7 @@ export function CloseAccount() {
       {!ready ? null : state.phase === "closed" ? (
         <AccountClosed closedAt={state.closedAt} />
       ) : state.phase === "requested" ? (
-        <ClosureTracker state={state} onCancel={cancelClosure} onComplete={complete} />
+        <ClosureTracker state={state} onComplete={complete} />
       ) : (
         <>
           <ClosureRequest

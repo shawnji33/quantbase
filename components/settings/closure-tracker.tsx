@@ -6,47 +6,36 @@
 // say who has it, where it's going, and when it lands. It borrows the step and
 // status grammar from the approval tracker so nothing new gets invented.
 //
-// Unlike the first build, nothing has been sold at the moment this appears. The
-// cancel copy says so rather than implying a rollback we may not be able to
-// perform once the desk has started.
+// There's no self-serve cancel. Once the desk starts selling, a sale can't be
+// quietly undone, so a Cancel button would promise a clean rollback we can't
+// perform. A change of mind goes to support, who can say what's already moved.
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { RiCheckLine } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Card, ClosurePage } from "@/components/settings/bits"
-import { CancelClosureDialog } from "@/components/settings/closure-actions"
 import { usd } from "@/lib/portfolio"
 import {
   CLOSE_DELAY_MS,
   CLOSURE_ETA,
+  SUPPORT_EMAIL,
   formatStamp,
   snapshot,
   type ClosureState,
 } from "@/lib/account-closure"
-import { useDialogParam } from "@/components/settings/use-dialog-param"
 
 type StepState = "done" | "current" | "todo"
 
 export function ClosureTracker({
   state,
-  onCancel,
   onComplete,
 }: {
   state: ClosureState
-  onCancel: () => void
   onComplete: () => void
 }) {
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const dialogParam = useDialogParam()
   const snap = snapshot(state)
-
-  useEffect(() => {
-    if (dialogParam !== "cancel-closure") return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep link
-    setCancelOpen(true)
-  }, [dialogParam])
 
   // The prototype compresses the real multi-day wait so the terminal state is
   // reachable in review. The copy still states the real timing.
@@ -146,16 +135,14 @@ export function ClosureTracker({
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium text-[#363643]">Changed your mind?</h2>
           <p className="text-xs leading-5 text-muted-foreground">
-            Cancel and your account stays open. Nothing has been sold yet, though if we&apos;ve
-            already started you may end up holding cash instead of strategies.
+            Reach out to our support team. If we&apos;ve already started selling, that can&apos;t be
+            undone, so the sooner we hear from you the better.
           </p>
         </div>
-        <Button variant="secondary" className="w-fit" onClick={() => setCancelOpen(true)}>
-          Cancel closure
+        <Button variant="secondary" className="w-fit" asChild>
+          <a href={`mailto:${SUPPORT_EMAIL}?subject=Account%20closure`}>Contact support</a>
         </Button>
       </Card>
-
-      <CancelClosureDialog open={cancelOpen} onOpenChange={setCancelOpen} onConfirm={onCancel} />
     </ClosurePage>
   )
 }

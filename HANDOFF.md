@@ -338,8 +338,8 @@ Three things fell out of that:
    both are actionable at once. A locked row that says "Available once…" would now be inventing a
    dependency that isn't real.
 3. **The email-code step is gone.** Submitting no longer closes anything by itself — it opens a
-   request a person reviews before a single share is sold, and the user can cancel while it's in
-   flight. A verification code in front of a reversible step is friction without a payoff. *(Worth
+   request a person reviews before a single share is sold. A verification code in front of that
+   is friction the human review already covers. *(Worth
    re-raising if compliance wants an identity check on the request itself; the human review step is
    what currently stands in for it.)*
 
@@ -373,8 +373,8 @@ that number before launch.**
 
 ### Lifecycle
 
-`open` → (prerequisites cleared) → confirm → `requested` → `closed`, with cancel from `requested`
-back to `open`. State persists in `sessionStorage` under `qb-closure`.
+`open` → (prerequisites cleared) → confirm → `requested` → `closed`. There's no path back to `open`
+from the app; support reverses a request by hand. State persists in `sessionStorage` under `qb-closure`.
 
 **The dashboard stays live while a closure is requested.** This is a change from the first build,
 where the tracker took the page over. Support hasn't sold anything yet, so the balance is still
@@ -383,9 +383,11 @@ real dashboard under a persistent `ClosingBanner` linking to the tracker. Only `
 page over, because then there genuinely is no portfolio. The banner isn't dismissible: it's a live
 state, not an announcement.
 
-Cancel copy is honest in both directions — nothing has been sold at request time, but if the desk has
-already started, the user may end up holding cash instead of strategies. Implying a clean rollback we
-can't perform is how this becomes a support escalation.
+**No self-serve cancel** (PM call, 2026-09-25). Once the desk starts selling, a sale can't be undone,
+so a Cancel button implied a clean rollback we can't perform. The confirm step and the tracker both say
+"If you change your mind, reach out to our support team" and link to support instead. The copy also
+names only the Quantbase account being closed, not Alpaca, since it isn't confirmed that we close the
+Alpaca account.
 
 ### Quiver acknowledgment
 
@@ -406,7 +408,7 @@ components/settings/
   use-closure.ts                           # sessionStorage-backed closure state
   close-account.tsx                        # orchestrator + review switchers
   closure-request.tsx                      # prerequisites + "what happens" summary  (was closure-checklist.tsx)
-  closure-actions.tsx                      # turn-off-auto, cancel-closure
+  closure-actions.tsx                      # turn-off-auto
   closure-confirm.tsx                      # two-step modal: Quiver ack + reason
   closure-tracker.tsx                      # requested state
   account-closed.tsx                       # terminal state
@@ -455,8 +457,9 @@ states no longer exist.
    screen deliberately offers no re-open path.
 4. **Is the closure request identity-checked?** The email code was removed on engineering's call.
    Built assuming **the human review step covers it**.
-5. **How long can a user cancel?** Built assuming **any time before the account closes**, with copy
-   that admits a partial sale may already have happened.
+5. **Can a closure be stopped?** No self-serve cancel; users contact support, who handle it case by
+   case. Open: **do we close the Alpaca account too?** Copy says only "your Quantbase account" until
+   that's confirmed.
 
 ---
 

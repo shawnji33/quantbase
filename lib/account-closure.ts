@@ -42,6 +42,10 @@ export type ClosureState = {
   requestedAt: string | null
   closedAt: string | null
   reason: string | null
+  // Free text from the "any features you'd like to see" ask on the confirm
+  // step. Separate from `reason` — why they left and what they wanted built
+  // are different questions and go to different people.
+  wishlist: string | null
 }
 
 export const CLOSURE_KEY = "qb-closure"
@@ -55,6 +59,7 @@ export const INITIAL_CLOSURE: ClosureState = {
   requestedAt: null,
   closedAt: null,
   reason: null,
+  wishlist: null,
 }
 
 export function readClosure(): ClosureState {

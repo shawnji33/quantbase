@@ -1,6 +1,6 @@
 "use client"
 
-// The flows that clear a closure prerequisite, plus the cancel-closure confirm.
+// The flows that clear a closure prerequisite.
 // Each is transactional and returns the user to the request screen, so they're
 // modals rather than pages — the list stays on screen behind them as the thing
 // being made progress against.
@@ -9,7 +9,9 @@
 // now, so the user never places those orders themselves; the dialogs are in git
 // history (pre-2026-09-15) if a standalone sell flow is ever wanted. The
 // cancel-deposit confirm went the same way on 2026-09-23 — the app can't stop
-// an in-flight ACH, so the flow no longer offers to.
+// an in-flight ACH, so the flow no longer offers to. The cancel-closure confirm
+// was removed on 2026-09-25: a sale can't be undone once support starts, so
+// a change of mind now goes through support instead of a button.
 
 import { useState } from "react"
 import { RiLoader4Line } from "@remixicon/react"
@@ -99,48 +101,6 @@ export function TurnOffAutoDialog({
             Leave it on
           </Button>
           <SubmitButton busy={busy} onClick={run} label="Turn off" pendingLabel="Turning off…" />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/* ------------------------------ cancel closure ----------------------------- */
-
-export function CancelClosureDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-}: {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  onConfirm: () => void
-}) {
-  const { busy, run } = useSubmit(() => {
-    onOpenChange(false)
-    onConfirm()
-  })
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Keep your account open?</DialogTitle>
-          <DialogDescription>
-            We&apos;ll stop the closure and your account stays open. If we&apos;ve already started
-            selling, we&apos;ll email you about what&apos;s left — anything sold stays as cash.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>
-            Continue closing
-          </Button>
-          <SubmitButton
-            busy={busy}
-            onClick={run}
-            label="Keep my account"
-            pendingLabel="Cancelling…"
-          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
