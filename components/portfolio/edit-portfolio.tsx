@@ -34,6 +34,11 @@ export function EditPortfolio() {
 
   function saveAndExit() {
     sessionStorage.setItem(PORTFOLIO_KEY, JSON.stringify(allocations))
+    // Picked a mix from the empty state: the dashboard should now show it.
+    const status = sessionStorage.getItem("qb-account-status")
+    if (status?.endsWith("-empty") && allocations.length > 0) {
+      sessionStorage.setItem("qb-account-status", status.replace("-empty", ""))
+    }
     router.push("/portfolio")
   }
 

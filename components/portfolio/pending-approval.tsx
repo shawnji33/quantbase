@@ -1,8 +1,9 @@
 "use client"
 
-// Account-approval pending state for the dashboard. After onboarding, the
-// brokerage application is under review — there's no portfolio data worth
-// showing, so the dashboard becomes a status tracker instead.
+// Account-approval pieces for the dashboard. After onboarding, the brokerage
+// application is under review. The user lands on a one-time "just applied"
+// page (ReviewIntro), and from then on the dashboard itself carries the status
+// (see pre-invest-dashboard.tsx), so waiting never means staring at a dead end.
 //
 // Status colors: brand purple = in progress/waiting, amber = action needed,
 // green = completion, muted red = terminal rejection only. Never red for
@@ -10,7 +11,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { RiArrowRightSLine, RiBankLine, RiCheckLine, RiCloseLine, RiCompass3Line, RiMailLine, RiMoneyDollarCircleLine, RiQuestionLine, RiSparklingLine, RiStockLine, RiUploadCloud2Line } from "@remixicon/react"
+import { RiArrowRightLine, RiArrowRightSLine, RiCheckLine, RiCloseLine, RiMailLine, RiUploadCloud2Line } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,8 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { strategies } from "@/lib/strategies"
-import { ALLOC_COLORS } from "@/lib/portfolio"
 import { FUNDING_PRESETS } from "@/lib/onboarding"
 import { LinkedBankRow, PlaidDialog } from "@/components/onboarding/bank-funding"
 import {
@@ -35,10 +34,8 @@ import {
 
 export type ApprovalVariant = "review" | "action"
 
-const AMBER = "#B45309"
-const SUPPORT_EMAIL = "support@getquantbase.com"
-
-const strategyName = new Map(strategies.map((s) => [s.id, s.name]))
+export const AMBER = "#B45309"
+export const SUPPORT_EMAIL = "support@getquantbase.com"
 
 type StepState = "done" | "current" | "action" | "todo"
 
@@ -56,23 +53,9 @@ function stepStates(variant: ApprovalVariant, docsSubmitted: boolean): StepState
   return ["done", "done", "current", "todo"]
 }
 
-export function PendingApproval({
-  variant,
-  startingPortfolio,
-  bankLabel,
-  depositAmount,
-  onFunded,
-}: {
-  variant: ApprovalVariant
-  startingPortfolio: { id: string; weight: number }[]
-  bankLabel: string | null
-  depositAmount: number | null
-  onFunded: (bankLabel: string, amount: number) => void
-}) {
-  const [fundOpen, setFundOpen] = useState(false)
-
-  // Submission receipt from the upload page, so returning users can see their
-  // documents were received and when.
+// Submission receipt from the upload page, so returning users can see their
+// documents were received and when.
+export function useDocsReceipt(): DocsReceipt | null {
   const [receipt, setReceipt] = useState<DocsReceipt | null>(null)
   useEffect(() => {
     try {
@@ -83,247 +66,144 @@ export function PendingApproval({
       /* no receipt */
     }
   }, [])
+  return receipt
+}
 
+/* ------------------------------ approval tracker ----------------------------- */
+// The four-step list. Full-size on the intro page, and folded inside the
+// dashboard's status card.
+
+export function ApprovalTracker({
+  variant,
+  receipt,
+}: {
+  variant: ApprovalVariant
+  receipt: DocsReceipt | null
+}) {
   const docsSubmitted = receipt !== null && variant === "review"
   const states = stepStates(variant, docsSubmitted)
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
-      {/* status header */}
-      <div className="flex flex-col items-center gap-3 text-center">
-        {variant === "review" ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-primary" />
+    <ol className="flex flex-col">
+      {STEPS.map((step, i) => {
+        const state = states[i]
+        const last = i === STEPS.length - 1
+        return (
+          <li key={step.title} className="relative flex gap-3.5 pb-6 last:pb-0">
+            {/* connector */}
+            {!last && (
+              <span
+                aria-hidden
+                className="absolute top-7 left-[13px] h-[calc(100%-1.9rem)] w-px"
+                style={{ backgroundColor: state === "done" ? "#1d7e4f55" : "rgba(0,0,0,0.1)" }}
+              />
+            )}
+            {/* marker */}
+            <span
+              className={cn(
+                "z-10 flex size-[27px] shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
+                state === "done" && "border-transparent bg-[#1d7e4f] text-white",
+                state === "current" && "border-transparent bg-primary text-white",
+                state === "action" && "border-transparent bg-[#E8B84E] text-white",
+                state === "todo" && "border-black/15 bg-white text-[#b4b5c5]",
+              )}
+            >
+              {state === "done" ? (
+                <RiCheckLine className="size-4" />
+              ) : state === "current" ? (
+                <span className="relative flex size-2.5">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-70" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-white" />
+                </span>
+              ) : state === "action" ? (
+                "!"
+              ) : (
+                i + 1
+              )}
             </span>
-            In review
+            <div className="min-w-0 pt-0.5">
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  state === "todo" ? "text-[#b4b5c5]" : "text-[#363643]",
+                )}
+              >
+                {step.title}
+                {state === "current" && (
+                  <span className="ml-2 text-xs font-medium text-primary">In progress</span>
+                )}
+              </p>
+              <p className={cn("text-sm leading-5", state === "todo" ? "text-[#b4b5c5]" : "text-muted-foreground")}>
+                {state === "action"
+                  ? "To finish verifying your identity, we need a few additional documents."
+                  : docsSubmitted && i === 1 && receipt
+                    ? `Documents received on ${formatReceiptTime(receipt.at)}. We're reviewing them now, and there's nothing else you need to do.`
+                    : step.detail}
+              </p>
+              {state === "action" && (
+                <Button size="sm" className="mt-2.5" asChild>
+                  <Link href="/verify-documents">
+                    <RiUploadCloud2Line className="size-4" />
+                    Upload additional documents
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/* ------------------------------- just applied -------------------------------- */
+// Shown once, right after the application is submitted. It confirms the
+// submission and says what happens next, then hands off to the dashboard,
+// which is where the user comes back to from then on.
+
+export function ReviewIntro({ onContinue }: { onContinue: () => void }) {
+  const receipt = useDocsReceipt()
+
+  return (
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 py-10">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
+            <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8B84E]/20 px-3 py-1 text-sm font-medium" style={{ color: AMBER }}>
-            Action needed
-          </span>
-        )}
-        <h1 className="text-2xl font-semibold tracking-tight text-[#363643]">
-          {variant === "review" ? "Your account is being set up" : "One more thing from you"}
+          In review
+        </span>
+        <h1 className="text-2xl font-semibold tracking-tight text-balance text-[#363643]">
+          Your application is in
         </h1>
         <p className="flex max-w-md items-center gap-2 text-sm leading-6 text-muted-foreground">
-          {variant === "review" ? (
-            <>
-              <RiMailLine className="size-4 shrink-0" />
-              We&apos;ll email you the moment your account is approved.
-            </>
-          ) : (
-            "Verification is paused. We need a few more documents from you to continue."
-          )}
+          <RiMailLine className="size-4 shrink-0" />
+          We&apos;ll email you the moment your account is approved.
         </p>
       </div>
 
-      {/* progress tracker */}
       <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-        <ol className="flex flex-col">
-          {STEPS.map((step, i) => {
-            const state = states[i]
-            const last = i === STEPS.length - 1
-            return (
-              <li key={step.title} className="relative flex gap-3.5 pb-6 last:pb-0">
-                {/* connector */}
-                {!last && (
-                  <span
-                    aria-hidden
-                    className="absolute top-7 left-[13px] h-[calc(100%-1.9rem)] w-px"
-                    style={{ backgroundColor: state === "done" ? "#1d7e4f55" : "rgba(0,0,0,0.1)" }}
-                  />
-                )}
-                {/* marker */}
-                <span
-                  className={cn(
-                    "z-10 flex size-[27px] shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
-                    state === "done" && "border-transparent bg-[#1d7e4f] text-white",
-                    state === "current" && "border-transparent bg-primary text-white",
-                    state === "action" && "border-transparent bg-[#E8B84E] text-white",
-                    state === "todo" && "border-black/15 bg-white text-[#b4b5c5]",
-                  )}
-                >
-                  {state === "done" ? (
-                    <RiCheckLine className="size-4" />
-                  ) : state === "current" ? (
-                    <span className="relative flex size-2.5">
-                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-70" />
-                      <span className="relative inline-flex size-2.5 rounded-full bg-white" />
-                    </span>
-                  ) : state === "action" ? (
-                    "!"
-                  ) : (
-                    i + 1
-                  )}
-                </span>
-                <div className="min-w-0 pt-0.5">
-                  <p
-                    className={cn(
-                      "text-sm font-medium",
-                      state === "todo" ? "text-[#b4b5c5]" : "text-[#363643]",
-                    )}
-                  >
-                    {step.title}
-                    {state === "current" && (
-                      <span className="ml-2 text-xs font-medium text-primary">In progress</span>
-                    )}
-                  </p>
-                  <p className={cn("text-sm leading-5", state === "todo" ? "text-[#b4b5c5]" : "text-muted-foreground")}>
-                    {state === "action"
-                      ? "To finish verifying your identity, we need a few additional documents."
-                      : docsSubmitted && i === 1 && receipt
-                        ? `Documents received on ${formatReceiptTime(receipt.at)}. We're reviewing them now, and there's nothing else you need to do.`
-                        : step.detail}
-                  </p>
-                  {state === "action" && (
-                    <Button size="sm" className="mt-2.5" asChild>
-                      <Link href="/verify-documents">
-                        <RiUploadCloud2Line className="size-4" />
-                        Upload additional documents
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </li>
-            )
-          })}
-        </ol>
+        <ApprovalTracker variant="review" receipt={receipt} />
       </div>
 
-      {/* starting portfolio: saved mix, or the empty state with both ways to build one.
-          Shown before funding — you pick what you're investing in first, then fund it,
-          same order as onboarding itself. */}
-      {startingPortfolio.length === 0 ? (
-        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-          <h2 className="text-base font-semibold text-[#363643]">Your starting portfolio</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            You haven&apos;t picked your starting mix yet. There are two ways to build one, and
-            your account review continues either way.
-          </p>
-          <div className="mt-4 flex flex-col gap-2.5">
-            <PortfolioPathRow
-              href="/onboarding?step=risk"
-              icon={<RiSparklingLine className="size-4.5" />}
-              title="Take a quick quiz"
-              body="Answer a few questions and we'll suggest a mix you can edit freely."
-            />
-            <PortfolioPathRow
-              href="/edit-portfolio?blank=1"
-              icon={<RiCompass3Line className="size-4.5" />}
-              title="Build it myself"
-              body="Pick strategies from the marketplace and set your own weights."
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-[#363643]">Your starting portfolio</h2>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href="/edit-portfolio">Edit portfolio</Link>
-            </Button>
-          </div>
-          <ul className="flex flex-col gap-2.5">
-            {startingPortfolio.map((h, i) => (
-              <li key={h.id} className="flex items-center gap-2.5 text-sm">
-                <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: ALLOC_COLORS[i % ALLOC_COLORS.length] }} />
-                <span className="min-w-0 flex-1 truncate text-[#47475d]">{strategyName.get(h.id) ?? h.id}</span>
-                <span className="font-medium tabular-nums text-[#363643]">{h.weight}%</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
-            Nothing is invested yet. Once you&apos;re approved, you can put this mix to work in one tap.
-          </p>
-        </div>
-      )}
-
-      {/* pending deposit: filled card once funded, on hold until approval and
-          editable/cancelable via support. Otherwise, a prompt to connect a bank
-          and fund now so money's ready the moment approval lands. */}
-      {depositAmount !== null && depositAmount > 0 ? (
-        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-          <h2 className="text-base font-semibold text-[#363643]">Your pending deposit</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            This transfer is on hold until your account is approved. Nothing moves until then.
-          </p>
-          <div className="mt-4 flex flex-col gap-2.5">
-            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
-                <RiBankLine className="size-4.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-[#363643]">
-                  {bankLabel ?? "Linked bank account"}
-                </span>
-                <span className="block text-sm text-muted-foreground">Connected account</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3.5 rounded-xl border border-[var(--border-secondary)] bg-white p-4">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
-                <RiMoneyDollarCircleLine className="size-4.5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-[#363643]">
-                  ${depositAmount.toLocaleString()}
-                </span>
-                <span className="block text-sm text-muted-foreground">Transfer amount</span>
-              </span>
-            </div>
-          </div>
-          <p className="mt-4 border-t border-[var(--border-secondary)] pt-3.5 text-xs leading-5 text-muted-foreground">
-            Need to change the amount, bank, or timing?{" "}
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-primary underline underline-offset-2">
-              Contact support
-            </a>{" "}
-            — we can edit or cancel it before it&apos;s processed.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-[16px] border border-[var(--border-secondary)] bg-card p-6 shadow-[var(--shadow-card)]">
-          <h2 className="text-base font-semibold text-[#363643]">Fund your account</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Connect a bank and deposit now, so your money&apos;s ready to invest the moment
-            you&apos;re approved. Nothing moves until then.
-          </p>
-          <Button className="mt-4" onClick={() => setFundOpen(true)}>
-            <RiBankLine className="size-4" />
-            Connect bank account
-          </Button>
-          <FundAccountDialog
-            key={String(fundOpen)} // remount on each open so it always starts at "connect"
-            open={fundOpen}
-            onOpenChange={setFundOpen}
-            onFunded={(label, amount) => {
-              setFundOpen(false)
-              onFunded(label, amount)
-            }}
-          />
-        </div>
-      )}
-
-      {/* while you wait */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <WaitCard
-          href="/strategies"
-          icon={<RiStockLine className="size-4.5" />}
-          title="Browse strategies"
-          body="Explore the marketplace while you wait."
-        />
-        <WaitCard
-          href="#"
-          icon={<RiQuestionLine className="size-4.5" />}
-          title="Questions about approval?"
-          body="How verification works and what we check."
-        />
+      <div className="flex flex-col items-center gap-2.5">
+        <Button size="lg" className="w-full sm:w-auto" onClick={onContinue}>
+          Go to your dashboard
+          <RiArrowRightLine className="size-4" />
+        </Button>
+        <p className="text-center text-xs leading-5 text-muted-foreground">
+          You can track your review, see how your strategies have performed, and fund your
+          account from there.
+        </p>
       </div>
     </div>
   )
 }
 
-function PortfolioPathRow({
+/* ------------------------------- shared rows --------------------------------- */
+
+export function PortfolioPathRow({
   href,
   icon,
   title,
@@ -351,47 +231,21 @@ function PortfolioPathRow({
   )
 }
 
-function WaitCard({
-  href,
-  icon,
-  title,
-  body,
-}: {
-  href: string
-  icon: React.ReactNode
-  title: string
-  body: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3.5 rounded-[16px] border border-[var(--border-secondary)] bg-card p-4 shadow-[var(--shadow-card)] transition-colors hover:border-black/15"
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[#575872]">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-[#363643]">{title}</span>
-        <span className="block text-sm text-muted-foreground">{body}</span>
-      </span>
-      <RiArrowRightSLine className="size-4.5 shrink-0 text-[#b4b5c5] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#575872]" />
-    </Link>
-  )
-}
-
 /* --------------------------- fund from the dashboard -------------------------- */
 // Two-stage dialog for users who skipped funding during onboarding: connect a
 // bank via the same Plaid flow, then pick an amount. Chained so bank-connect
 // and amount-picking never show at once.
 
-function FundAccountDialog({
+export function FundAccountDialog({
   open,
   onOpenChange,
   onFunded,
+  approved = false,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
   onFunded: (bankLabel: string, amount: number) => void
+  approved?: boolean
 }) {
   const [stage, setStage] = useState<"connect" | "amount">("connect")
   const [linkedBank, setLinkedBank] = useState<string | null>(null)
@@ -429,8 +283,9 @@ function FundAccountDialog({
         <DialogHeader>
           <DialogTitle>Add your first deposit</DialogTitle>
           <DialogDescription>
-            This transfer won&apos;t move until your account is approved — you can change or
-            cancel it anytime before then.
+            {approved
+              ? "Bank transfers usually arrive in 1 to 3 business days."
+              : "This transfer won't move until your account is approved. You can change or cancel it anytime before then."}
           </DialogDescription>
         </DialogHeader>
         {linkedBank && <LinkedBankRow label={linkedBank} />}
@@ -611,28 +466,60 @@ function SupportRow({
 }
 
 /* ------------------------------ approved banner ------------------------------ */
+// The next step depends on what the user already set up, so the banner says
+// only what's true for them:
+//   ready  → portfolio saved + deposit waiting: one tap to start investing
+//   fund   → portfolio saved, no money yet: add money
+//   empty  → no portfolio yet: the three ways to pick one sit right below
+// It stays until they act or dismiss it.
 
-export function ApprovedBanner({ onDismiss }: { onDismiss: () => void }) {
+export type ApprovedKind = "ready" | "fund" | "empty"
+
+export function ApprovedBanner({
+  kind,
+  depositAmount,
+  bankLabel,
+  onStartInvesting,
+  onFund,
+  onDismiss,
+}: {
+  kind: ApprovedKind
+  depositAmount: number | null
+  bankLabel: string | null
+  onStartInvesting: () => void
+  onFund: () => void
+  onDismiss: () => void
+}) {
+  const body =
+    kind === "ready"
+      ? `You can start investing now. Your $${(depositAmount ?? 0).toLocaleString()} deposit from ${bankLabel ?? "your bank"} is on its way.`
+      : kind === "fund"
+        ? "You can start investing now. Add money to put your starting portfolio to work."
+        : "You can start investing now. Pick a starting portfolio below to begin."
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 pt-6">
-      <div className="flex flex-wrap items-center gap-3 rounded-[16px] border border-[#1d7e4f]/25 bg-[#1d7e4f]/[0.07] px-5 py-4">
-        <span className="flex size-8 items-center justify-center rounded-full bg-[#1d7e4f] text-white">
-          <RiCheckLine className="size-4.5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[#14532d]">Your account is approved</p>
-          <p className="text-sm text-[#14532d]/80">
-            You&apos;re ready to invest. Your starting portfolio is saved and waiting.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" asChild>
-            <Link href="/strategies">Make your first investment</Link>
+    <div className="flex flex-wrap items-center gap-3 rounded-[16px] border border-[#1d7e4f]/25 bg-[#1d7e4f]/[0.07] px-5 py-4">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#1d7e4f] text-white">
+        <RiCheckLine className="size-4.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-[#14532d]">Your account is approved</p>
+        <p className="text-sm text-pretty text-[#14532d]/80">{body}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {kind === "ready" && (
+          <Button size="sm" onClick={onStartInvesting}>
+            Start investing
           </Button>
-          <Button variant="ghost" size="sm" className="text-[#14532d]/70" onClick={onDismiss}>
-            Dismiss
+        )}
+        {kind === "fund" && (
+          <Button size="sm" onClick={onFund}>
+            Add money
           </Button>
-        </div>
+        )}
+        <Button variant="ghost" size="sm" className="text-[#14532d]/70" onClick={onDismiss}>
+          Dismiss
+        </Button>
       </div>
     </div>
   )

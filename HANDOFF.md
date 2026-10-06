@@ -72,7 +72,7 @@ Node 18+ recommended. No environment variables are required (no backend).
 | `/login` | `app/login/page.tsx` | Auth UI (sign in / create account + email-code verify) — **UI only** |
 | `/onboarding` | `app/onboarding/page.tsx` → `components/onboarding/flow.tsx` | Full onboarding flow: intent fork → risk/experience → portfolio builder → bank/funding → KYC → agreements. Sidebar shell (brand rail, content vertically centered on lg screens). Dev deep links: `?step=<id>&fund=a\|b\|c&name=<first>`. Funding step keeps a floating A/B/C variant switcher (decision still open). |
 | `/strategies` | `app/strategies/page.tsx` → `components/marketplace/marketplace.tsx` | The marketplace (the main deliverable) |
-| `/portfolio` | `app/portfolio/page.tsx` → `components/portfolio/dashboard-gate.tsx` | Dashboard (placeholder redesign, not final): account-approval states (in review / no portfolio / action needed / approved, floating "Account" switcher + `?status=`) gating the portfolio overview (aggregate hero, allocation donut, value chart, strategy table) |
+| `/portfolio` | `app/portfolio/page.tsx` → `components/portfolio/dashboard-gate.tsx` | Dashboard (placeholder redesign, not final). Before anything is invested it's the pre-invest dashboard (§16): `?status=applied\|review\|review-empty\|action\|approved\|approved-empty`, plus the floating "Account" switcher. `live` is the portfolio overview (aggregate hero, allocation donut, value chart, strategy table) |
 | `/portfolio/[strategyId]` | `app/portfolio/[strategyId]/page.tsx` | Strategy detail: breadcrumb, switcher-as-title, holdings donut, value chart, Buy/Sell. Mock data in `lib/portfolio.ts` |
 | `/verify-documents` | `app/verify-documents/page.tsx` | Identity-verification uploads: per-document drop zones w/ simulated progress, submission receipt persisted (sessionStorage) and surfaced on the dashboard tracker |
 | `/edit-portfolio` | `app/edit-portfolio/page.tsx` | Standalone starting-portfolio editor (save & exit back to the in-review dashboard); `?blank=1` starts empty |
@@ -535,3 +535,40 @@ Every file that makes up the `/strategies` (Explore strategies) page.
 **Browse folders**
 - [`components/marketplace/`](https://github.com/shawnji33/quantbase/tree/main/components/marketplace) ·
   [`app/strategies/`](https://github.com/shawnji33/quantbase/tree/main/app/strategies)
+
+---
+
+## 16. Post-application dashboard (added 2026-09-27)
+
+Built from the PM's post-application onboarding PRD. The review status is now a card on the dashboard,
+not a page that takes it over.
+
+**Lifecycle**
+- `applied`: the onboarding done step lands here once ("Your application is in", the 4-step tracker,
+  "Go to your dashboard"). Continue → `review`, or `review-empty` if no portfolio was saved.
+- `review` / `action`: pre-invest dashboard. On top is a status card with the tracker folded underneath
+  (grid-rows accordion). In `action` the card turns amber and puts "Upload documents" on the card itself.
+- `approved`: the same body, with a green banner instead of the status card. The banner copy depends on
+  the setup. `ready` (portfolio + deposit) → "Start investing". `fund` (portfolio, no deposit) →
+  "Add money", which opens the Plaid + amount dialog. `empty` (no portfolio) → points to the three paths
+  below. Dismissal is kept in `qb-approved-banner-dismissed` and resets on every new approval.
+- `live`: the existing portfolio overview. "Start investing" goes here.
+- `-empty` variants: the starting-portfolio card becomes three equal paths (take the quiz, browse
+  strategies, build your own). Saving from `/edit-portfolio` drops the `-empty` suffix.
+
+**Performance before investing (compliance-sensitive)**
+The user holds nothing during review, so "portfolio performance" is each picked strategy's **own** track
+record: 1-year or all-time return, a sparkline, and the date it started. There is deliberately **no blended
+return or combined chart for the mix**. That would be hypothetical performance under the SEC marketing
+rule. The disclaimer under the table needs compliance sign-off before launch.
+
+**Files**: `components/portfolio/pre-invest-dashboard.tsx` (new), `pending-approval.tsx` (now holds
+ApprovalTracker, ReviewIntro, FundAccountDialog, ApprovedBanner, and ApplicationRejected),
+`dashboard-gate.tsx`.
+
+**Open questions**
+- Does the starting portfolio invest automatically once approval and the deposit settle, or only after
+  the one tap on "Start investing"? The prototype assumes the tap.
+- After approval, is the deposit auto-released or does it need confirming? The copy assumes it goes out
+  automatically ("on its way").
+- Legal copy for the past-returns disclaimer.

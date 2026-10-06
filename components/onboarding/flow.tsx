@@ -274,9 +274,9 @@ export function OnboardingFlow() {
               router.push("/strategies")
               return
             }
-            // Hand off to the dashboard in its account-approval state, carrying
+            // Hand off to the dashboard's "application is in" page, carrying
             // the portfolio built during onboarding.
-            sessionStorage.setItem("qb-account-status", "review")
+            sessionStorage.setItem("qb-account-status", "applied")
             sessionStorage.setItem("qb-starting-portfolio", JSON.stringify(allocations))
             if (bankLabel) sessionStorage.setItem("qb-bank-label", bankLabel)
             if (funded != null) sessionStorage.setItem("qb-funded-amount", String(funded))
