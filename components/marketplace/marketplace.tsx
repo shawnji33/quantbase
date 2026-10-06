@@ -78,6 +78,9 @@ export function Marketplace() {
       })
   }, [query, selected, sort])
 
+  // Every partner with a strategy on the page owes a "Partner Gets Paid" disclosure.
+  const partners = [...new Set(strategies.filter((s) => s.partner).map((s) => s.manager))]
+
   // Changing sort or filters remounts the results so they animate in.
   const animKey = `${selected.join(",")}|${sort}`
 
@@ -107,6 +110,13 @@ export function Marketplace() {
               Past performance doesn&apos;t guarantee future results:
             </span>{" "}
             You can lose money by investing.
+          </p>
+          <p>
+            <span className="font-semibold text-[#363643]">
+              Partner strategy:
+            </span>{" "}
+            This badge denotes a strategy that was developed by one of our
+            partners, and thus may carry additional fees.
           </p>
         </div>
       </div>
@@ -184,6 +194,29 @@ export function Marketplace() {
           ))}
         </div>
       )}
+
+      {/* page disclosures — "Standard Short" from the compliance library; keep verbatim */}
+      <footer className="mt-12 flex flex-col gap-3 border-t border-black/[0.08] pt-6 text-xs leading-relaxed text-muted-foreground">
+        <p>
+          Quantbase, LLC is an investment adviser registered with the SEC.
+          Registration does not imply any special degree of skill or training,
+          or any approval by a regulatory authority of an adviser&apos;s
+          investment methods. This is for informational purposes only and is
+          not investment advice or an offer to buy or sell any security.
+          Investing involves risk, including possible loss of principal. Past
+          performance does not guarantee future results.
+        </p>
+        {/* "Partner Gets Paid", one per partner. TODO(compliance): bracketed terms are unfilled template fields. */}
+        {partners.map((name) => (
+          <p key={name}>
+            {name} receives [$AMOUNT per funded account / PERCENTAGE% of
+            advisory fees from clients it refers] from Quantbase. This is a
+            conflict of interest because it gives {name} an incentive to
+            recommend Quantbase whether or not it is right for you. {name} is
+            [not a client of / a client of] Quantbase.
+          </p>
+        ))}
+      </footer>
     </div>
   )
 }

@@ -27,7 +27,7 @@ export function SparklineCard({
           </h3>
           {s.partner && (
             <span className="shrink-0 rounded-full border border-[#d7d7e0] bg-[#f6f6f9] px-2 py-0.5 text-xs font-medium text-[#47475d]">
-              Partner funds
+              Partner strategy
             </span>
           )}
         </div>
